@@ -1,11 +1,15 @@
 package wifi;
+import java.util.Vector;
+
 import rf.RF;
 
 public class Sender implements Runnable {
-	RF theRF;
+	private RF theRF;
+	private Vector<Short> dataToTrans;
 	
-	Sender(RF theRF){
-		this.theRF = theRF;
+	Sender(RF rfLayer, Vector<Short> data){
+		this.theRF = rfLayer;
+		this.dataToTrans = data;
 	}
 
 	@Override

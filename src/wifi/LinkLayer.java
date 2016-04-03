@@ -1,5 +1,6 @@
 package wifi;
 import java.io.PrintWriter;
+import java.util.Vector;
 import rf.RF;
 
 /**
@@ -11,6 +12,9 @@ public class LinkLayer implements Dot11Interface {
    private RF theRF;           // You'll need one of these eventually
    private short ourMAC;       // Our MAC address
    private PrintWriter output; // The output stream we'll write to
+   
+   //List of data that needs to be transmitted
+   private Vector<Short> dataToTrans;
 
    /**
     * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -22,6 +26,14 @@ public class LinkLayer implements Dot11Interface {
       this.ourMAC = ourMAC;
       this.output = output;      
       theRF = new RF(null, null);
+      
+      //The sender thread
+      this.dataToTrans = new Vector<Short>();
+      Sender sender = new Sender(this.theRF, this.dataToTrans);
+      sender.run();
+      
+      //The receiver thread
+      
       output.println("LinkLayer: Constructor ran.");
    }
 
@@ -31,6 +43,9 @@ public class LinkLayer implements Dot11Interface {
     */
    public int send(short dest, byte[] data, int len) {
       output.println("LinkLayer: Sending "+len+" bytes to "+dest);
+      
+      dataToTrans.add(dest);
+      
       theRF.transmit(data);
       return len;
    }
