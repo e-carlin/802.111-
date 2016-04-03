@@ -30,7 +30,7 @@ public class LinkLayer implements Dot11Interface {
       //The sender thread
       this.dataToTrans = new Vector<Short>();
       Sender sender = new Sender(this.theRF, this.dataToTrans);
-      sender.run();
+      (new Thread(sender)).start();
       
       //The receiver thread
       
