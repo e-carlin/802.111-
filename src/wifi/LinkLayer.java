@@ -44,10 +44,14 @@ public class LinkLayer implements Dot11Interface {
    public int send(short dest, byte[] data, int len) {
       output.println("LinkLayer: Sending "+len+" bytes to "+dest);
       
-      dataToTrans.add(dest);
+      //Add the data to the list
+      boolean successAdding = dataToTrans.add(dest);
       
       theRF.transmit(data);
-      return len;
+      if(successAdding)
+    	  return len;
+      else
+    	  return -1;
    }
 
    /**
