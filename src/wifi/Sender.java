@@ -18,9 +18,8 @@ public class Sender implements Runnable {
 			byte[] test = {0,1};
 			this.theRF.transmit(test);
 			
-			double wait = Math.random() * 500;
 			try{ //Needed for thread sleep
-				Thread.sleep((long) wait); //Wait a random time between 1-7 sec.
+				Thread.sleep(500); //Wait .5 second
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
 				System.out.println("Broadcast Interrupted "+e);
