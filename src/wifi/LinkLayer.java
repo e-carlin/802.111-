@@ -1,6 +1,5 @@
 package wifi;
 import java.io.PrintWriter;
-
 import rf.RF;
 
 /**
