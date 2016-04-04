@@ -13,7 +13,7 @@ import java.util.BitSet;
  *
  */
 public class PacketManipulator {
-	
+
 	private static int SIZE_BUF = 10; //There are always 10 bytes of non-data info in a packet (Ex. src address, checksum...)
 	/*
 	 * Constructs network ordered data packets
@@ -23,18 +23,18 @@ public class PacketManipulator {
 		//For creating packet to transmit
 		//Network order byte array
 		ByteBuffer buffer = ByteBuffer.allocate(SIZE_BUF+len);
-		
+
 		//Will need to use something like a BitSet here to be able to manipulate individual bits in the control part of frame
 		buffer.put(new byte[2]);
-		
+
 		buffer.putShort(dest); //add the destination MAC address
 		buffer.putShort(source); //Our MAC address
 		buffer.put(data); //add data ????? is it in network byte order????
-		
+
 		//Make a real CRC. All 1's for now
 		byte[] crc = {1,1,1,1};
 		buffer.put(crc);
-		
+
 
 		byte[] toSend = buffer.array(); //the array to send
 		return toSend;
@@ -48,9 +48,9 @@ public class PacketManipulator {
 			dest =  ((dest << 8) + (data[i] & 0xff));
 		}
 		return (short)dest;
-		
+
 	}
-	
+
 	/*
 	 * A method that extracts the source MAC address from an 802.11~ packet
 	 */
@@ -60,21 +60,21 @@ public class PacketManipulator {
 			dest =  ((dest << 8) + (data[i] & 0xff));
 		}
 		return (short)dest;
-		
+
 	}
-	
+
 	/*
 	 * A method that extracts the data from an 802.11~ packet
 	 * ****This method has not been tested at all not sure if it works******
 	 */
 	public static byte[] getData(byte[] recvdData){
-		
+
 		byte[] data = new byte[recvdData.length-10]; //-6 -4 = -10 (6 bytes for control and addressing, 4 for CRC)
 		for(int i=6; i<recvdData.length-4;i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where data can lie
 			data[i-6] = recvdData[i];
 		}
-		
+
 		return data;
 	}
-	
+
 }
