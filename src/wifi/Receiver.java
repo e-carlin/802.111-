@@ -3,6 +3,11 @@ package wifi;
 import java.util.Vector;
 import rf.RF;
 
+/**
+ * A class that listens for data on the RF layer and passes it back to the LinkLayer recv()
+ * @author evan
+ *
+ */
 public class Receiver implements Runnable {
 
 	private RF theRF;

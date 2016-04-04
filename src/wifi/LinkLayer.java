@@ -1,5 +1,6 @@
 package wifi;
 import java.io.PrintWriter;
+
 import java.util.Arrays;
 import java.util.Vector;
 import rf.RF;
@@ -79,15 +80,17 @@ public class LinkLayer implements Dot11Interface {
       //add the info to the transmission object
       t.setSourceAddr(this.ourMAC);
       
+      //***Do some checking to make sure this is us -probably should happen in receiver
       short destAddr = PacketManipulator.getDestAddr(dataRcvd);
       t.setDestAddr(destAddr);
       
+      short sourceAddr = PacketManipulator.getSourceAddr(dataRcvd);
+      t.setSourceAddr(sourceAddr);
+      
       byte[] data = PacketManipulator.getData(dataRcvd);
-      t.setBuf(data); //***Need to handle for the possible different buffer sizes
+      t.setBuf(data); //***Need to handle for the possible different buffer sizes btwn data rcvd and buffer of t  
       
-      
-      
-      
+      this.dataRcvd.remove(0); //delete the packet we just handled
       return -1; //change this to the number of bytes rcvd 
    }
 

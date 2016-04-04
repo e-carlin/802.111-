@@ -52,6 +52,18 @@ public class PacketManipulator {
 	}
 	
 	/*
+	 * A method that extracts the source MAC address from an 802.11~ packet
+	 */
+	public static short getSourceAddr(byte[] data){
+		int dest = 0;
+		for(int i=4; i<6;i++){ //First two bytes are destination MAC address
+			dest =  ((dest << 8) + (data[i] & 0xff));
+		}
+		return (short)dest;
+		
+	}
+	
+	/*
 	 * A method that extracts the data from an 802.11~ packet
 	 * ****This method has not been tested at all not sure if it works******
 	 */
