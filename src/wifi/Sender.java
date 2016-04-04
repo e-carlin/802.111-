@@ -5,9 +5,9 @@ import rf.RF;
 
 public class Sender implements Runnable {
 	private RF theRF;
-	private Vector<Short> dataToTrans;
+	private Vector<byte[]> dataToTrans;
 	
-	Sender(RF rfLayer, Vector<Short> data){
+	Sender(RF rfLayer, Vector<byte[]> data){
 		this.theRF = rfLayer;
 		this.dataToTrans = data;
 	}
@@ -15,8 +15,9 @@ public class Sender implements Runnable {
 	@Override
 	public void run() {
 		while(true){
-			byte[] test = {0,1};
-			this.theRF.transmit(test);
+			while(!dataToTrans.isEmpty()){ //while there is data to transmit
+			this.theRF.transmit(dataToTrans.get(0));
+			}
 			
 			try{ //Needed for thread sleep
 				Thread.sleep(500); //Wait .5 second
