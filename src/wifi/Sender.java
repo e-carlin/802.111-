@@ -17,9 +17,9 @@ public class Sender implements Runnable {
 	public void run() {
 		while(true){
 			while(!dataToTrans.isEmpty()){ //while there is data to transmit
-			System.out.println("Sending "+ Arrays.toString(dataToTrans.get(0))); //TESTING
-			this.theRF.transmit(dataToTrans.get(0)); //transmit the data
-			dataToTrans.removeElementAt(0); //Delete the packet becuase it has been sent
+				System.out.println("Sending "+ Arrays.toString(dataToTrans.get(0))); //TESTING
+				this.theRF.transmit(dataToTrans.get(0)); //transmit the data
+				dataToTrans.removeElementAt(0); //Delete the packet becuase it has been sent
 			}
 			
 			try{ //Needed for thread sleep
