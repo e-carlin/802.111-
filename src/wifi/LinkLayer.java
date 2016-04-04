@@ -16,6 +16,7 @@ public class LinkLayer implements Dot11Interface {
    
    //List of data that needs to be transmitted
    private Vector<byte[]> dataToTrans;
+   private Vector<byte[]> dataRecvd;
 
    /**
     * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -34,6 +35,9 @@ public class LinkLayer implements Dot11Interface {
       (new Thread(sender)).start();
       
       //The receiver thread
+      this.dataRecvd = new Vector<byte[]>();
+      Receiver recvr = new Receiver(this.theRF, this.dataRecvd);
+      (new Thread(recvr)).start();
       
       output.println("LinkLayer: Constructor ran.");
    }
