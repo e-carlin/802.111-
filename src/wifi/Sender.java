@@ -1,4 +1,5 @@
 package wifi;
+import java.util.Arrays;
 import java.util.Vector;
 
 import rf.RF;
@@ -16,7 +17,9 @@ public class Sender implements Runnable {
 	public void run() {
 		while(true){
 			while(!dataToTrans.isEmpty()){ //while there is data to transmit
+			System.out.println("Sending "+ Arrays.toString(dataToTrans.get(0)));
 			this.theRF.transmit(dataToTrans.get(0));
+			dataToTrans.removeElementAt(0);
 			}
 			
 			try{ //Needed for thread sleep

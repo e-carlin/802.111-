@@ -15,13 +15,11 @@ public class PacketBuilder {
 	private static int SIZE_BUF = 10; //There are always 10 bytes of non-data info in a packet (Ex. src address, checksum...)
 	/*
 	 * Constructs network ordered data packets
+	 * The order in which each element is put in the buffer is important
 	 */
 	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len){
 		//For creating packet to transmit
 		//Network order byte array
-		System.out.println("Length "+ len); //DELETE
-		System.out.println("Size of DATA "+data.length);
-		
 		ByteBuffer buffer = ByteBuffer.allocate(SIZE_BUF+len);
 		
 		//Will need to use something like a BitSet here to be able to manipulate individual bits in the control part of frame
