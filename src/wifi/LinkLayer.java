@@ -72,12 +72,13 @@ public class LinkLayer implements Dot11Interface {
 				Thread.sleep(5); //Wait
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				System.out.println("Broadcast Interrupted "+e);
+				output.println("Interrupted while waiting in recv() "+e);
 
 			}
       }
       byte[] data = this.dataRcvd.get(0);
       //add the info to the transmission object
+      
       
       return -1; //change this to the number of bytes rcvd 
    }
