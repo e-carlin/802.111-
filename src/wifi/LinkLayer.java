@@ -50,7 +50,7 @@ public class LinkLayer implements Dot11Interface {
       output.println("LinkLayer: Sending "+len+" bytes to "+dest);
       
       //Construct the data packet
-      byte[] toSend = PacketBuilder.buildDataPacket(dest, this.ourMAC, data, len);
+      byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len);
       boolean successAdding = dataToTrans.add(toSend);
 
       if(successAdding)
@@ -75,8 +75,17 @@ public class LinkLayer implements Dot11Interface {
 
 			}
       }
-      byte[] data = this.dataRcvd.get(0);
+      byte[] dataRcvd = this.dataRcvd.get(0);
       //add the info to the transmission object
+      t.setSourceAddr(this.ourMAC);
+      
+      short destAddr = PacketManipulator.getDestAddr(dataRcvd);
+      t.setDestAddr(destAddr);
+      
+      byte[] data = PacketManipulator.getData(dataRcvd);
+      t.setBuf(data); //***Need to handle for the possible different buffer sizes
+      
+      
       
       
       return -1; //change this to the number of bytes rcvd 
