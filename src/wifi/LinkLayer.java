@@ -16,7 +16,7 @@ public class LinkLayer implements Dot11Interface {
    
    //List of data that needs to be transmitted
    private Vector<byte[]> dataToTrans;
-   private Vector<byte[]> dataRecvd;
+   private Vector<byte[]> dataRcvd;
 
    /**
     * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -35,8 +35,8 @@ public class LinkLayer implements Dot11Interface {
       (new Thread(sender)).start();
       
       //The receiver thread
-      this.dataRecvd = new Vector<byte[]>();
-      Receiver recvr = new Receiver(this.theRF, this.dataRecvd);
+      this.dataRcvd = new Vector<byte[]>();
+      Receiver recvr = new Receiver(this.theRF, this.dataRcvd);
       (new Thread(recvr)).start();
       
       output.println("LinkLayer: Constructor ran.");
@@ -66,8 +66,20 @@ public class LinkLayer implements Dot11Interface {
     */
    public int recv(Transmission t) {
       output.println("LinkLayer: Pretending to block on recv()");
-      while(true); // <--- This is a REALLY bad way to wait.  Sleep a little each time through.
-      //return 0;
+      while(this.dataRcvd.isEmpty()){
+    	  
+    	  try{ 
+				Thread.sleep(5); //Wait
+			}
+			catch(InterruptedException e){ //If interrupted during sleep
+				System.out.println("Broadcast Interrupted "+e);
+
+			}
+      }
+      byte[] data = this.dataRcvd.get(0);
+      //add the info to the transmission object
+      
+      return -1; //change this to the number of bytes rcvd 
    }
 
    /**
