@@ -52,6 +52,8 @@ public class LinkLayer implements Dot11Interface {
       
       //Construct the data packet
       byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len);
+      
+      //add the packet to the shared Vector
       boolean successAdding = dataToTrans.add(toSend);
 
       if(successAdding)
@@ -76,6 +78,9 @@ public class LinkLayer implements Dot11Interface {
 
 			}
       }
+      
+      //There is new info so process it
+      
       byte[] dataRcvd = this.dataRcvd.get(0);
       //add the info to the transmission object
       t.setSourceAddr(this.ourMAC);
@@ -90,8 +95,9 @@ public class LinkLayer implements Dot11Interface {
       byte[] data = PacketManipulator.getData(dataRcvd);
       t.setBuf(data); //***Need to handle for the possible different buffer sizes btwn data rcvd and buffer of t  
       
-      this.dataRcvd.remove(0); //delete the packet we just handled
-      return -1; //change this to the number of bytes rcvd 
+      this.dataRcvd.remove(0); //delete the packet we just processed
+      
+      return -1; //****change this to the number of bytes rcvd 
    }
 
    /**
