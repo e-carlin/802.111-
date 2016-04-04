@@ -53,7 +53,6 @@ public class LinkLayer implements Dot11Interface {
       byte[] toSend = PacketBuilder.buildDataPacket(dest, this.ourMAC, data, len);
       boolean successAdding = dataToTrans.add(toSend);
 
-      theRF.transmit(data);
       if(successAdding)
     	  return len;
       else
