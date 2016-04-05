@@ -27,7 +27,7 @@ public class PacketManipulator {
 	 * @param dest the destination MAC address
 	 * @param source the source MAC address
 	 * @param data the data to be transmitted
-	 * @param len the length of data (number of bytes
+	 * @param len the length of data (number of bytes)
 	 * @return the fully constructed packet
 	 */
 	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len){
