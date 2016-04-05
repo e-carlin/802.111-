@@ -23,9 +23,8 @@ public class Sender implements Runnable {
 	public void run() {
 		while(true){
 
-			//****Neeed to wait to make sure channel is free
 			while(!dataToTrans.isEmpty()){ //while there is data to transmit
-				if(!theRF.inUse()){
+				if(!theRF.inUse()){ //while the channel is idle
 					System.out.println("Sending "+ Arrays.toString(dataToTrans.get(0))); //***TESTING
 					this.theRF.transmit(dataToTrans.get(0)); //transmit the data
 					dataToTrans.removeElementAt(0); //Delete the packet because it has been sent

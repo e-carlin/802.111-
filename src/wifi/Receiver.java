@@ -6,7 +6,7 @@ import rf.RF;
 
 /**
  * A class that listens for data on the RF layer and passes it back to the LinkLayer recv()
- * @author evan
+ * @author Evan Carlin and Ethan Russell
  *
  */
 public class Receiver implements Runnable {

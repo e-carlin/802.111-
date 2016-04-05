@@ -83,8 +83,6 @@ public class LinkLayer implements Dot11Interface {
 
 		byte[] dataRcvd = this.dataRcvd.get(0);
 		//add the info to the transmission object
-		t.setSourceAddr(this.ourMAC);
-
 		//***Do some checking to make sure this is us -probably should happen in receiver
 		short destAddr = PacketManipulator.getDestAddr(dataRcvd);
 		t.setDestAddr(destAddr);
@@ -93,11 +91,11 @@ public class LinkLayer implements Dot11Interface {
 		t.setSourceAddr(sourceAddr);
 
 		byte[] data = PacketManipulator.getData(dataRcvd);
-		t.setBuf(data); //***Need to handle for the possible different buffer sizes btwn data rcvd and buffer of t  
+		t.setBuf(data); //set the transmissions buffer to the data rcvd
 
 		this.dataRcvd.remove(0); //delete the packet we just processed
 
-		return -1; //****change this to the number of bytes rcvd 
+		return data.length;
 	}
 
 	/**
