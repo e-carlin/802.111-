@@ -39,7 +39,7 @@ public class LinkLayer implements Dot11Interface {
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(this.theRF, this.dataRcvd);
+		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC);
 		(new Thread(recvr)).start();
 
 		output.println("LinkLayer: Constructor ran.");
