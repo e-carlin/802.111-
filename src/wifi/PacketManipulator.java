@@ -23,6 +23,7 @@ public class PacketManipulator {
 	/*
 	 * Constructs network ordered data packets
 	 * The order in which each element is put in the buffer is important
+	 * 
 	 */
 	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len){
 		//For creating packet to transmit
