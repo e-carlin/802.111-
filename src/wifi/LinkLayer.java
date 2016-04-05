@@ -17,7 +17,7 @@ public class LinkLayer implements Dot11Interface {
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
 
-	//List of data that needs to be transmitted
+	//Data shared with threads
 	private Vector<byte[]> dataToTrans;
 	private Vector<byte[]> dataRcvd;
 
@@ -65,18 +65,18 @@ public class LinkLayer implements Dot11Interface {
 	}
 
 	/**
-	 * Recv method blocks until data arrives, then writes it an address info into
+	 * Recv method blocks until data arrives, then writes info into
 	 * the Transmission object.  See docs for full description.
 	 */
 	public int recv(Transmission t) {
-		output.println("LinkLayer: Pretending to block on recv()");
+		output.println("LinkLayer: Blocking on recv()");
 		while(this.dataRcvd.isEmpty()){
 
 			try{ 
-				Thread.sleep(5); //Wait
+				Thread.sleep(100); //Wait
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				output.println("Interrupted while waiting in recv() "+e);
+				output.println("Interrupted while blocking in recv() "+e);
 
 			}
 		}
