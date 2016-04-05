@@ -5,13 +5,13 @@ import java.util.Vector;
 import rf.RF;
 
 /**
- * Builds packets and sends them whenever data is supplied
+ * Sends packets over RF when they are supplied
  * @author Evan Carlin and Ethan Russell
  * @version 04//03/2016
  *
  */
 public class Sender implements Runnable {
-	private RF theRF;
+	private RF theRF; 
 	private Vector<byte[]> dataToTrans;
 
 	Sender(RF rfLayer, Vector<byte[]> data){

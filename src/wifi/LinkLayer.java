@@ -18,8 +18,8 @@ public class LinkLayer implements Dot11Interface {
 	private PrintWriter output; // The output stream we'll write to
 
 	//Data shared with threads
-	private Vector<byte[]> dataToTrans;
-	private Vector<byte[]> dataRcvd;
+	private Vector<byte[]> dataToTrans; //Outgoing data app->transmit
+	private Vector<byte[]> dataRcvd; //Incoming data recv->app
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -58,7 +58,7 @@ public class LinkLayer implements Dot11Interface {
 		//add the packet to the shared Vector
 		boolean successAdding = dataToTrans.add(toSend);
 
-		if(successAdding)
+		if(successAdding) //success adding to the vector
 			return len;
 		else
 			return -1;
@@ -70,7 +70,7 @@ public class LinkLayer implements Dot11Interface {
 	 */
 	public int recv(Transmission t) {
 		output.println("LinkLayer: Blocking on recv()");
-		while(this.dataRcvd.isEmpty()){
+		while(this.dataRcvd.isEmpty()){ //While there is no new data rcvd (block)
 
 			try{ 
 				Thread.sleep(100); //Wait
@@ -82,10 +82,9 @@ public class LinkLayer implements Dot11Interface {
 		}
 
 		//There is new info so process it
-
 		byte[] dataRcvd = this.dataRcvd.get(0);
+		
 		//add the info to the transmission object
-		//***Do some checking to make sure this is us -probably should happen in receiver
 		short destAddr = PacketManipulator.getDestAddr(dataRcvd);
 		t.setDestAddr(destAddr);
 
@@ -93,7 +92,7 @@ public class LinkLayer implements Dot11Interface {
 		t.setSourceAddr(sourceAddr);
 
 		byte[] data = PacketManipulator.getData(dataRcvd);
-		t.setBuf(data); //set the transmissions buffer to the data rcvd
+		t.setBuf(data); 
 
 		this.dataRcvd.remove(0); //delete the packet we just processed
 
