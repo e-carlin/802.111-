@@ -1,8 +1,10 @@
 package wifi;
 import java.io.PrintWriter;
 
+
 import java.util.Arrays;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import rf.RF;
 
 
@@ -18,7 +20,7 @@ public class LinkLayer implements Dot11Interface {
 	private PrintWriter output; // The output stream we'll write to
 
 	//Data shared with threads
-	private Vector<byte[]> dataToTrans; //Outgoing data app->transmit
+	private ConcurrentLinkedQueue<byte[]> dataToTrans; //Outgoing data app->transmit
 	private Vector<byte[]> dataRcvd; //Incoming data recv->app
 
 	/**
@@ -33,7 +35,7 @@ public class LinkLayer implements Dot11Interface {
 		theRF = new RF(null, null);
 
 		//The sender thread
-		this.dataToTrans = new Vector<byte[]>();
+		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
 		Sender sender = new Sender(this.theRF, this.dataToTrans);
 		(new Thread(sender)).start();
 

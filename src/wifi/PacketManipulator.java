@@ -55,7 +55,7 @@ public class PacketManipulator {
 	 */
 	public static short getDestAddr(byte[] data){
 		int dest = 0;
-		for(int i=2; i<4;i++){ //First two bytes are destination MAC address
+		for(int i=2; i<4;i++){ //Bytes 2-4 are destination MAC address
 			dest =  ((dest << 8) + (data[i] & 0xff));
 		}
 		return (short)dest;
@@ -69,7 +69,7 @@ public class PacketManipulator {
 	 */
 	public static short getSourceAddr(byte[] data){
 		int dest = 0;
-		for(int i=4; i<6;i++){ //First two bytes are destination MAC address
+		for(int i=4; i<6;i++){ //Bytes 4-6 are destination MAC address
 			dest =  ((dest << 8) + (data[i] & 0xff));
 		}
 		return (short)dest;
@@ -90,6 +90,11 @@ public class PacketManipulator {
 		}
 
 		return data;
+	}
+	
+	public static boolean isACK(byte[] recvdData){
+		
+		return true;
 	}
 
 }
