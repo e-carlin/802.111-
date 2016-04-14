@@ -25,6 +25,22 @@ public class Sender implements Runnable {
 		this.dataToTrans = data;
 		this.rcvdACK = rcvdACK;
 	}
+
+	/**
+	 * This function waits a certain interval for an ACK 
+	 * @return Whether or not the ACK was received before the timeout
+	 */
+	private boolean waitForACK(){
+		
+		//***Need to implement timeout stuff***
+		
+		while(!rcvdACK.isEmpty()){ //An ACK was rcvd
+			rcvdACK.poll();
+			//****Probably should check sequence numbers here
+			return true;
+		}
+		return false;
+	}	
 	
 	/**
 	 * A method that waits DIFS and attempts to transmit a packet
@@ -32,25 +48,26 @@ public class Sender implements Runnable {
 	 */
 	private boolean waitAndSendData(){
 		
-		//*******Wait DIFS*******
+		try{ //Sleep the thread for DIFS
+			Thread.sleep(0,50000); //Wait 50 microseconds ******Is that the correct DIFS wait ???*****
+		}
+		catch(InterruptedException e){ //If interrupted during sleep
+			System.out.println("Interrupted while waiting DIFS "+e);
+
+		}
 		
 		if(!theRF.inUse()){ //The channel is still idle
 			this.theRF.transmit(dataToTrans.poll()); //retrieve, transmit, and remove frame from queue
 			System.out.println("Transmitting data!");
 			return true; //We transmitted the frame so we are done
 		}
+		
 		//The channel was no longer idle so we were unable to send the frame
 		System.out.println("Channel was no longer idle after waiting DIFS");
 		return false;
 	}
 	
-	/**
-	 * This function waits a certain interval for an ACK 
-	 * @return Whether or not the ACK was received before the timeout
-	 */
-	private boolean waitForACK(){
-		return true;
-	}
+
 
 	@Override
 	public void run() {
@@ -68,18 +85,10 @@ public class Sender implements Runnable {
 				}
 				
 				
-				
-				try{ //Sleep the thread a bit before checking for idle channel
-					Thread.sleep(200); //Wait .2 second
-				}
-				catch(InterruptedException e){ //If interrupted during sleep
-					System.out.println("Interrupted while waiting for idle channel "+e);
-
-				}
 			}
 
 			try{ //Sleep the thread a bit before checking again for new data
-				Thread.sleep(200); //Wait .2 second
+				Thread.sleep(100); //Wait .1 second
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
 				System.out.println("Interrupted while waiting for data to brodcast "+e);

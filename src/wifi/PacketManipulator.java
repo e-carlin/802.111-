@@ -48,6 +48,7 @@ public class PacketManipulator {
 		byte[] toSend = buffer.array(); //the array to send
 		return toSend;
 	}
+	
 	/**
 	 * A method that extracts the destination adress from a packet
 	 * @param data the packet we want to extract address from
@@ -102,9 +103,18 @@ public class PacketManipulator {
 	
 	public static boolean isDataPacket(byte[] recvdData){
 		
-		byte typeData = 0b0000_0000;
+		byte typeData = 0b000_0000;
 		
-		if( (recvdData[0] & typeData) == typeData ) //if the type of rcvd packet is data
+		if( (recvdData[0] & 0b1110_0000) == typeData ) //if the type of rcvd packet is data
+			return true;
+		else
+			return false;
+	}
+	
+	public static boolean isACKPacket(byte[] recvdData){
+		
+		byte typeACK = 0b0010_0000;
+		if((recvdData[0] & 0b1110000) == typeACK)
 			return true;
 		else
 			return false;
