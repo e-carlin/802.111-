@@ -32,10 +32,14 @@ public class Receiver implements Runnable {
 			byte[] data = this.theRF.receive(); //block until a packet is received
 			
 			 //Check to make sure we are the desired destination or -1 for a broadcast message
-			if(PacketManipulator.getDestAddr(data) == this.ourMAC || PacketManipulator.getDestAddr(data) == -1){
-				if(PacketManipulator.isDataPacket(data))
+			short destAddr = PacketManipulator.getDestAddr(data);
+			short srcAddr = PacketManipulator.getSourceAddr(data);
+			if(destAddr == this.ourMAC || destAddr == -1){
+				if(PacketManipulator.isDataPacket(data)){
 					dataRcvd.add(data);
-				else
+					byte[] ackPacket;
+					if(destAddr != -1) ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC);
+				}else if(PacketManipulator.isACKPacket(data))
 					rcvdACK.add(data);
 			
 				//**** need to add else if to check for Beacons ****
