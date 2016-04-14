@@ -57,7 +57,7 @@ public class LinkLayer implements Dot11Interface {
 		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
 
 		//Construct the data packet
-		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len);
+		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len, 0);
 
 		//add the packet to the shared Vector
 		boolean successAdding = dataToTrans.add(toSend);
