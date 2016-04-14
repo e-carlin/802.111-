@@ -15,7 +15,7 @@ import rf.RF;
  * @author richards
  */
 public class LinkLayer implements Dot11Interface {
-	private RF theRF;           // You'll need one of these eventually
+	private static RF theRF;           // You'll need one of these eventually
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
 
@@ -102,7 +102,14 @@ public class LinkLayer implements Dot11Interface {
 
 		return data.length;
 	}
-
+	
+	/**
+	 * This function returns the RF layers clock time
+	 * @return the clock time
+	 */
+	public static long clock(){
+		return theRF.clock();
+	}
 	/**
 	 * Returns a current status code.  See docs for full description.
 	 */
