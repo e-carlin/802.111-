@@ -33,9 +33,9 @@ public class PacketManipulator {
 	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len){
 		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF+len); //Min 10 bytes of control, address, and CRC + len of data
 
-		//Will need to use something like a BitSet here to be able to manipulate individual bits in the control part of frame
-		buffer.put(new byte[2]);
 
+		buffer.put(new byte[]{0,0});
+			
 		buffer.putShort(dest); //add the destination MAC address
 		buffer.putShort(source); //Our MAC address
 		buffer.put(data); //add data ????? is it in network byte order???? -I think so
@@ -92,9 +92,33 @@ public class PacketManipulator {
 		return data;
 	}
 	
-	public static boolean isACK(byte[] recvdData){
+	/**
+	 * ****** This is Not Working yet...*****
+	 * This function reads the Frame Type bits of the Control field to determine
+	 * if the packet is a data packet
+	 * @param recvdData The packet to examine
+	 * @return Whether or not the packet is a data packet
+	 */
+	
+	public static boolean isDataPacket(byte[] recvdData){
 		
-		return true;
+		byte data = recvdData[0];
+		byte control = -32; //0b1110_0000 - This is the byte sequence for a data packet
+		System.out.println("And = "+ ((control&data)==control));
+		
+		BitSet b = new BitSet(16);
+		System.out.println("Len = "+b.length());
+
+		
+		//0x03 is a 
+		
+		//Check to see if first 3 bits of packet are 0 - if so it is data packet
+//		if( (((dest << 8) + (recvdData[0] & 0xff)) == 0) &&
+//				(((dest << 8) + (recvdData[0] & 0xff)) == 0) &&
+//				(((dest << 8) + (recvdData[0] & 0xff)) == 0))
+			return true;
+		
+//		return false;
 	}
 
 }

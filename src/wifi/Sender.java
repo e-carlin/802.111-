@@ -51,6 +51,7 @@ public class Sender implements Runnable {
 		while(true){
 
 			while(!dataToTrans.isEmpty()){ //while there is data to transmit
+				System.out.println("Is data?? "+ PacketManipulator.isDataPacket(dataToTrans.peek()));
 				if(!theRF.inUse()){ //If the channel is idle - Left side of FSD
 					if(waitAndSendData()){ //try to send the packet
 						// Wait for ACK
