@@ -16,6 +16,7 @@ public class Receiver implements Runnable {
 
 	private RF theRF;
 	private Vector<byte[]> dataRcvd; //data shared with LinkLayer
+	//TODO shared AcksToSend queue (sender waits SIFS always, sends ack if needed, waits remaining time for DIFS otherwise)
 	private ConcurrentLinkedQueue<byte[]> rcvdACK; 
 	private short ourMAC; //our MAC address
 
@@ -37,8 +38,11 @@ public class Receiver implements Runnable {
 			if(destAddr == this.ourMAC || destAddr == -1){
 				if(PacketManipulator.isDataPacket(data)){
 					dataRcvd.add(data);
-					byte[] ackPacket;
-					if(destAddr != -1) ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC);
+					if(destAddr != -1){
+						byte[] ackPacket;
+						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, 0);
+						//TODO throw ackPacket on shared queue
+					}
 				}else if(PacketManipulator.isACKPacket(data))
 					rcvdACK.add(data);
 			
