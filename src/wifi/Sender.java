@@ -1,5 +1,6 @@
 package wifi;
 import java.util.Arrays;
+
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -14,12 +15,15 @@ import rf.RF;
 public class Sender implements Runnable {
 	private RF theRF; 
 	private ConcurrentLinkedQueue<byte[]> dataToTrans;
+	private ConcurrentLinkedQueue<byte[]> rcvdACK;
+	
 	private final int TIMEOUT = 500; //This is completely made up need better number
-	private final int DIFS = 50/1000; 
+	private final int DIFS = 50/1000; //Also made up
 
-	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data){
+	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK){
 		this.theRF = rfLayer;
 		this.dataToTrans = data;
+		this.rcvdACK = rcvdACK;
 	}
 	
 	/**
@@ -27,7 +31,9 @@ public class Sender implements Runnable {
 	 * @return whether or not we were able to successfully transmit the packet
 	 */
 	private boolean waitAndSendData(){
+		
 		//*******Wait DIFS*******
+		
 		if(!theRF.inUse()){ //The channel is still idle
 			this.theRF.transmit(dataToTrans.poll()); //retrieve, transmit, and remove frame from queue
 			System.out.println("Transmitting data!");
@@ -51,7 +57,6 @@ public class Sender implements Runnable {
 		while(true){
 
 			while(!dataToTrans.isEmpty()){ //while there is data to transmit
-				System.out.println("Is data?? "+ PacketManipulator.isDataPacket(dataToTrans.peek()));
 				if(!theRF.inUse()){ //If the channel is idle - Left side of FSD
 					if(waitAndSendData()){ //try to send the packet
 						// Wait for ACK

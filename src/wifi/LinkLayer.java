@@ -21,6 +21,7 @@ public class LinkLayer implements Dot11Interface {
 
 	//Data shared with threads
 	private ConcurrentLinkedQueue<byte[]> dataToTrans; //Outgoing data app->transmit
+	private ConcurrentLinkedQueue<byte[]> rcvdACK;
 	private Vector<byte[]> dataRcvd; //Incoming data recv->app
 
 	/**
@@ -32,16 +33,17 @@ public class LinkLayer implements Dot11Interface {
 	public LinkLayer(short ourMAC, PrintWriter output) {
 		this.ourMAC = ourMAC;
 		this.output = output;      
-		theRF = new RF(null, null);
+		this.theRF = new RF(null, null);
 
 		//The sender thread
 		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
-		Sender sender = new Sender(this.theRF, this.dataToTrans);
+		Sender sender = new Sender(this.theRF, this.dataToTrans, null);
 		(new Thread(sender)).start();
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC);
+		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
+		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK);
 		(new Thread(recvr)).start();
 
 		output.println("LinkLayer: Constructor ran.");

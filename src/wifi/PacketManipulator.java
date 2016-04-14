@@ -93,7 +93,7 @@ public class PacketManipulator {
 	}
 	
 	/**
-	 * ****** This is Not Working yet...*****
+	 * ****** I think this works??*****
 	 * This function reads the Frame Type bits of the Control field to determine
 	 * if the packet is a data packet
 	 * @param recvdData The packet to examine
@@ -102,23 +102,12 @@ public class PacketManipulator {
 	
 	public static boolean isDataPacket(byte[] recvdData){
 		
-		byte data = recvdData[0];
-		byte control = -32; //0b1110_0000 - This is the byte sequence for a data packet
-		System.out.println("And = "+ ((control&data)==control));
+		byte typeData = 0b0000_0000;
 		
-		BitSet b = new BitSet(16);
-		System.out.println("Len = "+b.length());
-
-		
-		//0x03 is a 
-		
-		//Check to see if first 3 bits of packet are 0 - if so it is data packet
-//		if( (((dest << 8) + (recvdData[0] & 0xff)) == 0) &&
-//				(((dest << 8) + (recvdData[0] & 0xff)) == 0) &&
-//				(((dest << 8) + (recvdData[0] & 0xff)) == 0))
+		if( (recvdData[0] & typeData) == typeData ) //if the type of rcvd packet is data
 			return true;
-		
-//		return false;
+		else
+			return false;
 	}
 
 }
