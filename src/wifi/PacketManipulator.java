@@ -30,11 +30,16 @@ public class PacketManipulator {
 	 * @param len the length of data (number of bytes)
 	 * @return the fully constructed packet
 	 */
-	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len){
+	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len, int sequenceNum){
 		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF+len); //Min 10 bytes of control, address, and CRC + len of data
-
-
-		buffer.put(new byte[]{0,0});
+		int controlBits = 0b000_00000;
+		int controlMask = 0b111_00000;
+		int seqMSBMask = 0x0F;
+		int seqMSB = sequenceNum >> 8;
+		
+		byte firstByte = (byte)((controlBits & controlMask) + (seqMSB & seqMSBMask));
+		byte secondByte = (byte)(0xFF & sequenceNum);
+		buffer.put(new byte[] {firstByte, secondByte});
 			
 		buffer.putShort(dest); //add the destination MAC address
 		buffer.putShort(source); //Our MAC address
@@ -47,6 +52,47 @@ public class PacketManipulator {
 
 		byte[] toSend = buffer.array(); //the array to send
 		return toSend;
+	}
+	
+	/**
+	 * Constructs ack  packet
+	 * @param dest the destination MAC address
+	 * @param source the source MAC address
+	 * @return the fully constructed packet
+	 */
+	public static byte[] buildACKPacket(short dest, short source, int sequenceNum){
+		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF); //Min 10 bytes of control, address, and CRC + len of data
+		
+		int controlBits = 0b001_00000; //ack
+		int controlMask = 0b111_00000;
+		int seqMSBMask = 0x0F;
+		int seqMSB = sequenceNum >> 8;
+		
+		byte firstByte = (byte)((controlBits & controlMask) + (seqMSB & seqMSBMask));
+		byte secondByte = (byte)(0xFF & sequenceNum);
+		buffer.put(new byte[] {firstByte, secondByte});
+			
+		buffer.putShort(dest); //add the destination MAC address
+		buffer.putShort(source); //Our MAC address
+
+		//Make a real CRC. All 1's for now - CRC32 example
+		byte[] crc = {1,1,1,1};
+		buffer.put(crc);
+
+
+		byte[] toSend = buffer.array(); //the array to send
+		return toSend;
+	}
+	
+	/**
+	 * sets an existing packet retry bit to 1
+	 * @param prevPacket existing packet
+	 * @return modified packet
+	 */
+	public static byte[] setRetryBit(byte[] prevPacket){
+		Byte retryMask = 0b0001_0000;
+		prevPacket[0] |= retryMask;
+		return prevPacket;
 	}
 	
 	/**
