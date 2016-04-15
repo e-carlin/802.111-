@@ -31,6 +31,8 @@ public class Receiver implements Runnable {
 
 		while(true){
 			byte[] data = this.theRF.receive(); //block until a packet is received
+			System.out.println("Rcvd a packet");
+			System.out.println("Is it data? "+ PacketManipulator.isDataPacket(data));
 			
 			 //Check to make sure we are the desired destination or -1 for a broadcast message
 			short destAddr = PacketManipulator.getDestAddr(data);
@@ -42,6 +44,7 @@ public class Receiver implements Runnable {
 						byte[] ackPacket;
 						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, 0);
 						//TODO throw ackPacket on shared queue
+						this.theRF.transmit(ackPacket);
 					}
 				}else if(PacketManipulator.isACKPacket(data))
 					rcvdACK.add(data);

@@ -34,15 +34,17 @@ public class LinkLayer implements Dot11Interface {
 		this.ourMAC = ourMAC;
 		this.output = output;      
 		this.theRF = new RF(null, null);
+		
+		//Shared between sender and recvr
+		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 
 		//The sender thread
 		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
-		Sender sender = new Sender(this.theRF, this.dataToTrans, null);
+		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK);
 		(new Thread(sender)).start();
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK);
 		(new Thread(recvr)).start();
 
