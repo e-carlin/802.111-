@@ -42,8 +42,10 @@ public class Receiver implements Runnable {
 					dataRcvd.add(data);
 					if(destAddr != -1){
 						byte[] ackPacket;
+						//TODO manage sequence numbers
 						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, 0);
-						//TODO throw ackPacket on shared queue
+						//TODO throw ackPacket on shared queue to transmit
+						System.out.println("ACK dest "+PacketManipulator.getDestAddr(ackPacket));
 						this.theRF.transmit(ackPacket);
 					}
 				}else if(PacketManipulator.isACKPacket(data))

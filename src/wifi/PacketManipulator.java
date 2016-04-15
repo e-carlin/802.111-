@@ -43,7 +43,7 @@ public class PacketManipulator {
 			
 		buffer.putShort(dest); //add the destination MAC address
 		buffer.putShort(source); //Our MAC address
-		buffer.put(data); //add data ????? is it in network byte order???? -I think so
+		buffer.put(data); //add data
 
 		//Make a real CRC. All 1's for now - CRC32 example
 		byte[] crc = {1,1,1,1};
@@ -61,7 +61,7 @@ public class PacketManipulator {
 	 * @return the fully constructed packet
 	 */
 	public static byte[] buildACKPacket(short dest, short source, int sequenceNum){
-		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF); //Min 10 bytes of control, address, and CRC + len of data
+		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF); //10 bytes of control, address, and CRC
 		
 		int controlBits = 0b001_00000; //ack
 		int controlMask = 0b111_00000;

@@ -138,7 +138,6 @@ public class Sender implements Runnable {
 	}
 
 
-	//****Currently this will only retry once it needs to retry n times*****
 	@Override
 	public void run() {
 		while(true){
