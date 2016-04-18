@@ -37,12 +37,15 @@ public class Receiver implements Runnable {
 			 //Check to make sure we are the desired destination or -1 for a broadcast message
 			short destAddr = PacketManipulator.getDestAddr(data);
 			short srcAddr = PacketManipulator.getSourceAddr(data);
+			int seqNum = PacketManipulator.getSeqNum(data);
 			if(destAddr == this.ourMAC || destAddr == -1){
 				if(PacketManipulator.isDataPacket(data)){
 					dataRcvd.add(data);
 					if(destAddr != -1){
 						byte[] ackPacket;
-						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, 0);
+						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
+						System.out.printf("ack(%d) ", seqNum);
+						PacketManipulator.printPacket(ackPacket);
 						//TODO throw ackPacket on shared queue
 						this.theRF.transmit(ackPacket);
 					}

@@ -16,10 +16,10 @@ public class PacketManipulator {
 	
 
 	
-	private static int SIZE_CONTROL = 2; //2 bytes of control
-	private static int SIZE_ADDR = 2; //2 bytes of address
-	private static int SIZE_CRC = 4; //4 bytes of CRC
-	private static int MIN_SIZE_BUF = SIZE_CONTROL + SIZE_ADDR*2 + SIZE_CRC; //There are always 10 bytes of non-data info in a packet (Ex. src address, checksum...)
+	private static final int SIZE_CONTROL = 2; //2 bytes of control
+	private static final int SIZE_ADDR = 2; //2 bytes of address
+	private static final int SIZE_CRC = 4; //4 bytes of CRC
+	private static final int MIN_SIZE_BUF = SIZE_CONTROL + SIZE_ADDR*2 + SIZE_CRC; //There are always 10 bytes of non-data info in a packet (Ex. src address, checksum...)
 
 	/**
 	 * Constructs network ordered data packets
@@ -139,6 +139,14 @@ public class PacketManipulator {
 		return data;
 	}
 	
+	public static int getSeqNum(byte[] packet){
+		int seqMSBMask = 0x0F;
+		int seqMSB = packet[0] & seqMSBMask;
+		int seqLSB = packet[1];
+		
+		return (seqMSB << 8) + seqLSB;
+	}
+	
 	/**
 	 * ****** I think this works??*****
 	 * This function reads the Frame Type bits of the Control field to determine
@@ -164,6 +172,14 @@ public class PacketManipulator {
 			return true;
 		else
 			return false;
+	}
+	
+	public static void printPacket(byte[] packet){
+		System.out.print("[ ");
+		for(int i=0; i<packet.length; i++){
+			System.out.printf("%X ", packet[i]);
+		}
+		System.out.println("]");
 	}
 
 }

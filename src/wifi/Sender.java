@@ -1,8 +1,5 @@
 package wifi;
 
-import java.util.Arrays;
-import java.util.Random;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import rf.RF;
 
