@@ -95,31 +95,39 @@ public class Sender implements Runnable {
 	private void backoffAndTransmit(){
 		//Exponential backoff while medium idle
 		this.cw = this.cw*2 + 1; //Exponential increase
-		
+
 		if(this.cw > this.theRF.aCWmax)
 			this.cw = this.theRF.aCWmax; //cw can't be greater than the max cw
-		
+
 		System.out.println("CW = " +this.cw);
-		
+
 		int backoff = (int) ((Math.random()*this.cw) * this.theRF.aSlotTime);
-		
-		System.out.println("Waiting backoff = "+backoff);
 
-		//*******Need to add channel sensing and pausing while in use*******
-		try{ //Sleep the thread for Backoff
-			Thread.sleep(backoff); //sleep for DIFS
-		}
-		catch(InterruptedException e){ //If interrupted during sleep
-			System.out.println("Interrupted while waiting backoff "+e);
+		while(backoff > 0){ //wait the backoff while sensing and pausing when channel isn't idle
+			System.out.println("Waiting backoff = "+backoff);
+			if(this.theRF.inUse()){ //the channel is in use so wait a little bit
+				try{ //Sleep the thread for aSlotTime
+					Thread.sleep(this.theRF.aSlotTime); //sleep for DIFS
+					System.out.println("Sleeping aSlotTime in backoff");
+				}
+				catch(InterruptedException e){ //If interrupted during sleep
+					System.out.println("Interrupted while sleeping aSlotTime "+e);
 
+				}
+			}
+			else if(!this.theRF.inUse())
+				break;
+			backoff -= this.theRF.aSlotTime;
 		}
+
+
 
 		System.out.println("Waiting DIFS after backoff "+this.DIFS);
 		//Transmit after waiting
 		this.theRF.transmit(dataToTrans.peek()); //transmit the frame
 		System.out.println("Transmitting data!");
 	}
-	
+
 	private boolean waitForACK(){
 		long startTime = LinkLayer.clock();
 		while(LinkLayer.clock() < (startTime + TIMEOUT)){ //we haven't timed out
@@ -204,7 +212,7 @@ public class Sender implements Runnable {
 		}
 		backoffAndTransmit();
 		return; //We transmitted the frame so we are done!
-		
+
 	}
 
 	private void waitSIFS() {
@@ -216,7 +224,7 @@ public class Sender implements Runnable {
 			System.out.println("Interrupted while waiting SIFS "+e);
 
 		}
-		
+
 	}
 }
 
