@@ -41,6 +41,7 @@ public class LinkLayer implements Dot11Interface {
 		
 		//Shared between sender and recvr
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
+		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
 		//The sender thread
 		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
@@ -51,8 +52,6 @@ public class LinkLayer implements Dot11Interface {
 		this.dataRcvd = new Vector<byte[]>();
 		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend);
 		(new Thread(recvr)).start();
-		
-		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
 		output.println("LinkLayer: Constructor ran.");
 	}
