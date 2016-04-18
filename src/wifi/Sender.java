@@ -194,26 +194,25 @@ public class Sender implements Runnable {
 	}
 
 	private void waitAndSendAck() {
+		while(true){
+			if(!this.theRF.inUse()){ //medium is idle				
+				waitSIFS(); //Wait SIFS		
+				if(!this.theRF.inUse()){ //medium is still idle
+					this.theRF.transmit(acksToSend.poll()); //transmit the frame
+					System.out.println("Transmitting Ack!");
+					return; //We transmitted the AcK so we are done
+				}
+			}
+			try{
+				Thread.sleep(this.theRF.aSlotTime);
+			}
+			catch(InterruptedException e){ //If interrupted during sleep
+				System.out.println("Interrupted while waiting for idle channel to transmit ACK "+e);
 
-		if(!this.theRF.inUse()){ //medium is idle				
-			waitSIFS(); //Wait DIFS		
-			if(!this.theRF.inUse()){ //medium is still idle
-				this.theRF.transmit(dataToTrans.peek()); //transmit the frame
-				System.out.println("Transmitting data!");
-				return; //We transmitted the frame so we are done
 			}
 		}
-		//The channel was in use so we must wait for it to be idle
-		while(true){
-			waitForIdleChannel();
-			waitSIFS();
-			if(!this.theRF.inUse()) //The channel is finally idle
-				break;
-		}
-		backoffAndTransmit();
-		return; //We transmitted the frame so we are done!
-
 	}
+
 
 	private void waitSIFS() {
 		System.out.println("Waiting SIFS "+this.SIFS);

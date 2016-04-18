@@ -50,9 +50,8 @@ public class Receiver implements Runnable {
 						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
 						System.out.printf("ack(%d:%d) ", srcAddr, seqNum);
 						PacketManipulator.printPacket(ackPacket);
-						acksToSend.add(ackPacket);
 						//throw ackPacket on shared queue
-						this.theRF.transmit(ackPacket);
+						acksToSend.add(ackPacket);
 					}
 				}else if(PacketManipulator.isACKPacket(data))
 					rcvdACK.add(data);
