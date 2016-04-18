@@ -27,6 +27,7 @@ public class Sender implements Runnable {
 	private int reTrys = 0; //the number of times we have tried to send a packet
 	private final int TIMEOUT = 10000; //milliseconds - This is completely made up need better number
 	private final int DIFS = this.theRF.aSIFSTime + 2*this.theRF.aSlotTime; 
+	private final int SIFS = this.theRF.aSIFSTime; 
 
 	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend){
 		this.theRF = rfLayer;
@@ -141,33 +142,36 @@ public class Sender implements Runnable {
 	@Override
 	public void run() {
 		while(true){
-			while(!dataToTrans.isEmpty()){ //while there is data to transmit
-				waitAndSendData(); //Do necessary sensing, waiting, and transmitting
-				if(waitForACK()){ //After sending the packet wait for an ACK
-					dataToTrans.poll(); //Remove this packet
-					break; //We've rcvd the ACK so were all done with this packet!
-				}
-				else{ //We timed out while waiting for an ACK so there must have been a collision
-					//Exponential backoff and retransmit
-					while(true){
-						this.reTrys++;
-						if(this.reTrys > this.theRF.dot11RetryLimit){ //we've reached the retry limit
-							System.out.println("Reached retry limit!");
-							//Reset everything
-							this.reTrys = 0;
-							this.collisionCount = 0;
-							this.cw = this.theRF.aCWmin;
-							dataToTrans.poll(); //Remove the packet we can't seem to send
-							break;
+			while(!(dataToTrans.isEmpty() && acksToSend.isEmpty())){ //while there is data to transmit
+				if(!acksToSend.isEmpty()){
+					waitAndSendAck(); //acks get priority
+				}else{
+					waitAndSendData(); //Do necessary sensing, waiting, and transmitting
+					if(waitForACK()){ //After sending the packet wait for an ACK
+						dataToTrans.poll(); //Remove this packet
+						break; //We've rcvd the ACK so were all done with this packet!
+					}else{ //We timed out while waiting for an ACK so there must have been a collision
+						//Exponential backoff and retransmit
+						while(true){
+							this.reTrys++;
+							if(this.reTrys > this.theRF.dot11RetryLimit){ //we've reached the retry limit
+								System.out.println("Reached retry limit!");
+								//Reset everything
+								this.reTrys = 0;
+								this.collisionCount = 0;
+								this.cw = this.theRF.aCWmin;
+								dataToTrans.poll(); //Remove the packet we can't seem to send
+								break;
+							}
+							System.out.println("There was a collision");
+							this.collisionCount ++; //Increment the collision counter
+							backoffAndTransmit();
+							if(waitForACK()){ //After sending the packet wait for an ACK
+								dataToTrans.poll(); //Remove this packet
+								break; //We've rcvd the ACK so were all done with this packet!
+							}
+							//else retry because we didn't retrieve an ACK
 						}
-						System.out.println("There was a collision");
-						this.collisionCount ++; //Increment the collision counter
-						backoffAndTransmit();
-						if(waitForACK()){ //After sending the packet wait for an ACK
-							dataToTrans.poll(); //Remove this packet
-							break; //We've rcvd the ACK so were all done with this packet!
-						}
-						//else retry because we didn't retrieve an ACK
 					}
 				}
 			}
@@ -180,6 +184,40 @@ public class Sender implements Runnable {
 			}
 		}
 
+	}
+
+	private void waitAndSendAck() {
+
+		if(!this.theRF.inUse()){ //medium is idle				
+			waitSIFS(); //Wait DIFS		
+			if(!this.theRF.inUse()){ //medium is still idle
+				this.theRF.transmit(dataToTrans.peek()); //transmit the frame
+				System.out.println("Transmitting data!");
+				return; //We transmitted the frame so we are done
+			}
+		}
+		//The channel was in use so we must wait for it to be idle
+		while(true){
+			waitForIdleChannel();
+			waitSIFS();
+			if(!this.theRF.inUse()) //The channel is finally idle
+				break;
+		}
+		backoffAndTransmit();
+		return; //We transmitted the frame so we are done!
+		
+	}
+
+	private void waitSIFS() {
+		System.out.println("Waiting SIFS "+this.SIFS);
+		try{ //Sleep the thread for DIFS
+			Thread.sleep(this.SIFS); //sleep for DIFS
+		}
+		catch(InterruptedException e){ //If interrupted during sleep
+			System.out.println("Interrupted while waiting SIFS "+e);
+
+		}
+		
 	}
 }
 
