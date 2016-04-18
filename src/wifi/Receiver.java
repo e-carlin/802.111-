@@ -45,15 +45,13 @@ public class Receiver implements Runnable {
 					dataRcvd.add(data);
 					if(destAddr != -1){
 						byte[] ackPacket;
-						//TODO manage sequence numbers
-						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, 0);
-						//TODO throw ackPacket on shared queue to transmit or maybe lock and transmit ourselves??
-						System.out.println("ACK dest "+PacketManipulator.getDestAddr(ackPacket));
+						//manage sequence numbers
+						//throw ackPacket on shared queue to transmit or maybe lock and transmit ourselves??
 						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
 						System.out.printf("ack(%d:%d) ", srcAddr, seqNum);
 						PacketManipulator.printPacket(ackPacket);
 						acksToSend.add(ackPacket);
-						//TODO throw ackPacket on shared queue
+						//throw ackPacket on shared queue
 						this.theRF.transmit(ackPacket);
 					}
 				}else if(PacketManipulator.isACKPacket(data))
