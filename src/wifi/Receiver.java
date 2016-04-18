@@ -16,15 +16,17 @@ public class Receiver implements Runnable {
 
 	private RF theRF;
 	private Vector<byte[]> dataRcvd; //data shared with LinkLayer
+	private ConcurrentLinkedQueue<byte[]> acksToSend;
 	//TODO shared AcksToSend queue (sender waits SIFS always, sends ack if needed, waits remaining time for DIFS otherwise)
 	private ConcurrentLinkedQueue<byte[]> rcvdACK; 
 	private short ourMAC; //our MAC address
 
-	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK){
+	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]> acksToSend){
 		this.theRF = rf;
 		this.dataRcvd = data;
 		this.rcvdACK = rcvdACK;
 		this.ourMAC = ourMAC;
+		this.acksToSend = acksToSend;
 	}
 	@Override
 	public void run() {
@@ -37,6 +39,7 @@ public class Receiver implements Runnable {
 			 //Check to make sure we are the desired destination or -1 for a broadcast message
 			short destAddr = PacketManipulator.getDestAddr(data);
 			short srcAddr = PacketManipulator.getSourceAddr(data);
+			int seqNum = PacketManipulator.getSeqNum(data);
 			if(destAddr == this.ourMAC || destAddr == -1){
 				if(PacketManipulator.isDataPacket(data)){
 					dataRcvd.add(data);
@@ -46,6 +49,11 @@ public class Receiver implements Runnable {
 						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, 0);
 						//TODO throw ackPacket on shared queue to transmit or maybe lock and transmit ourselves??
 						System.out.println("ACK dest "+PacketManipulator.getDestAddr(ackPacket));
+						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
+						System.out.printf("ack(%d:%d) ", srcAddr, seqNum);
+						PacketManipulator.printPacket(ackPacket);
+						acksToSend.add(ackPacket);
+						//TODO throw ackPacket on shared queue
 						this.theRF.transmit(ackPacket);
 					}
 				}else if(PacketManipulator.isACKPacket(data))

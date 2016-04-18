@@ -1,13 +1,11 @@
 package wifi;
 import java.io.PrintWriter;
 
-
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import rf.RF;
-
-
 
 /**
  * Use this layer as a starting point for your project code.  See {@link Dot11Interface} for more
@@ -15,14 +13,18 @@ import rf.RF;
  * @author richards
  */
 public class LinkLayer implements Dot11Interface {
+	private static final int WINDOW_SIZE = 100; //TODO: choose window size
 	private static RF theRF;           // You'll need one of these eventually
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
+	
+	private HashMap<Short, Integer> sequenceMap; //maps mac addresses to the current sequence number
 
 	//Data shared with threads
 	private ConcurrentLinkedQueue<byte[]> dataToTrans; //Outgoing data app->transmit
 	private ConcurrentLinkedQueue<byte[]> rcvdACK;
 	private Vector<byte[]> dataRcvd; //Incoming data recv->app
+	private ConcurrentLinkedQueue<byte[]> acksToSend;
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -35,18 +37,22 @@ public class LinkLayer implements Dot11Interface {
 		this.output = output;      
 		this.theRF = new RF(null, null);
 		
+		sequenceMap = new HashMap<Short, Integer>();
+		
 		//Shared between sender and recvr
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 
 		//The sender thread
 		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
-		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK);
+		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend);
 		(new Thread(sender)).start();
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK);
+		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend);
 		(new Thread(recvr)).start();
+		
+		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
 		output.println("LinkLayer: Constructor ran.");
 	}
@@ -58,12 +64,22 @@ public class LinkLayer implements Dot11Interface {
 	public int send(short dest, byte[] data, int len) {
 		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
 
-		//Construct the data packet
-		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len, 0);
-
 		//add the packet to the shared Vector
+		Integer currentSeqNumber = sequenceMap.get(dest);
+		if(currentSeqNumber == null){
+			 int newSeqNumber = 0; //always start with 0;
+			 sequenceMap.put(dest, newSeqNumber);
+			 currentSeqNumber = newSeqNumber;
+		}
+		//Construct the data packet
+		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len, currentSeqNumber);
+		System.out.printf("sending(%d:%d) ", dest, currentSeqNumber);
+		PacketManipulator.printPacket(toSend);
+		
+		currentSeqNumber = (currentSeqNumber + toSend.length) % WINDOW_SIZE;
+		sequenceMap.put(dest, currentSeqNumber);
+		
 		boolean successAdding = dataToTrans.add(toSend);
-
 		if(successAdding) //success adding to the vector
 			return len;
 		else
