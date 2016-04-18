@@ -16,15 +16,17 @@ public class Receiver implements Runnable {
 
 	private RF theRF;
 	private Vector<byte[]> dataRcvd; //data shared with LinkLayer
+	private ConcurrentLinkedQueue<byte[]> acksToSend;
 	//TODO shared AcksToSend queue (sender waits SIFS always, sends ack if needed, waits remaining time for DIFS otherwise)
 	private ConcurrentLinkedQueue<byte[]> rcvdACK; 
 	private short ourMAC; //our MAC address
 
-	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK){
+	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]> acksToSend){
 		this.theRF = rf;
 		this.dataRcvd = data;
 		this.rcvdACK = rcvdACK;
 		this.ourMAC = ourMAC;
+		this.acksToSend = acksToSend;
 	}
 	@Override
 	public void run() {
@@ -44,8 +46,9 @@ public class Receiver implements Runnable {
 					if(destAddr != -1){
 						byte[] ackPacket;
 						ackPacket = PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
-						System.out.printf("ack(%d) ", seqNum);
+						System.out.printf("ack(%d:%d) ", srcAddr, seqNum);
 						PacketManipulator.printPacket(ackPacket);
+						acksToSend.add(ackPacket);
 						//TODO throw ackPacket on shared queue
 						this.theRF.transmit(ackPacket);
 					}

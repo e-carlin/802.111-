@@ -20,17 +20,19 @@ public class Sender implements Runnable {
 	private RF theRF; 
 	private ConcurrentLinkedQueue<byte[]> dataToTrans;
 	private ConcurrentLinkedQueue<byte[]> rcvdACK;
+	private ConcurrentLinkedQueue<byte[]> acksToSend;
 
 	private int cw = this.theRF.aCWmin; //The current collision window
-	private int collisionCount = 0; //The number of collisions that have occured since the last successful transmit
-	private int reTrys = 0; //the number of times we have tryed to send a packet
+	private int collisionCount = 0; //The number of collisions that have occurred since the last successful transmit
+	private int reTrys = 0; //the number of times we have tried to send a packet
 	private final int TIMEOUT = 10000; //milliseconds - This is completely made up need better number
 	private final int DIFS = this.theRF.aSIFSTime + 2*this.theRF.aSlotTime; 
 
-	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK){
+	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend){
 		this.theRF = rfLayer;
 		this.dataToTrans = data;
 		this.rcvdACK = rcvdACK;
+		this.acksToSend = acksToSend;
 	}
 
 	/**
