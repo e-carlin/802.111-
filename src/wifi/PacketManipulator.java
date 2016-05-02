@@ -3,6 +3,7 @@ package wifi;
 import java.nio.ByteBuffer;
 import java.util.zip.Checksum;
 import java.util.zip.CRC32;
+import java.io.PrintWriter;
 
 /**
  * A static class to construct and de-construct network order packets (byte arrays)
@@ -176,12 +177,18 @@ public class PacketManipulator {
 			return false;
 	}
 	
-	public static void printPacket(byte[] packet){
-		System.out.print("[ ");
-		for(int i=0; i<packet.length; i++){
-			System.out.print(packet[i] + " ");
-		}
-		System.out.println("]");
+	public static void printPacket(PrintWriter output,byte[] packet){
+		output.print("[ ");
+		
+		if(PacketManipulator.isDataPacket(packet))
+			output.print("Data ");
+		else if(PacketManipulator.isACKPacket(packet));
+			output.print("ACK ");
+
+		output.print(PacketManipulator.getSourceAddr(packet) + " –> " + PacketManipulator.getDestAddr(packet));
+		
+		output.print("  CRC?? ");
+		output.println("]");
 	}
 
 }

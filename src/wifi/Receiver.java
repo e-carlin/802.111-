@@ -41,8 +41,6 @@ public class Receiver implements Runnable {
 			short destAddr = PacketManipulator.getDestAddr(packet);
 			if(destAddr == this.ourMAC || destAddr == -1){
 				
-				output.println("Rcvd a packet");
-				output.println("Is it data? "+ PacketManipulator.isDataPacket(packet));
 				
 				if(PacketManipulator.isDataPacket(packet)){
 					dataRcvd.add(packet);
@@ -52,7 +50,6 @@ public class Receiver implements Runnable {
 						int seqNum = PacketManipulator.getSeqNum(packet);
 						byte[] ackPacket =  PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
 
-						output.printf("ack(%d:%d) ", srcAddr, seqNum);
 						//throw ackPacket on shared queue
 						acksToSend.add(ackPacket);
 					}

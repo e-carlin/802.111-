@@ -71,8 +71,6 @@ public class LinkLayer implements Dot11Interface {
 		}
 		//Construct the data packet
 		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len, currentSeqNumber);
-		System.out.printf("sending(%d:%d) ", dest, currentSeqNumber);
-		PacketManipulator.printPacket(toSend);
 		
 		currentSeqNumber = (currentSeqNumber + toSend.length) % WINDOW_SIZE;
 		sequenceMap.put(dest, currentSeqNumber);

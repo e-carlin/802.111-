@@ -206,8 +206,10 @@ public class Sender implements Runnable {
 			if(!this.theRF.inUse()){ //medium is idle				
 				waitSIFS(); //Wait SIFS		
 				if(!this.theRF.inUse()){ //medium is still idle
+										
+					this.output.print("Transmitting ACK ");
+					PacketManipulator.printPacket(output, acksToSend.peek());
 					this.theRF.transmit(acksToSend.poll()); //transmit the frame
-					this.output.println("Transmitting Ack!");					
 					return; //We transmitted the AcK so we are done
 				}
 			}
