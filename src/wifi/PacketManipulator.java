@@ -1,9 +1,8 @@
 package wifi;
 
 import java.nio.ByteBuffer;
-
-import java.util.Arrays;
-import java.util.BitSet;
+import java.util.zip.Checksum;
+import java.util.zip.CRC32;
 
 /**
  * A static class to construct and de-construct network order packets (byte arrays)
@@ -45,12 +44,20 @@ public class PacketManipulator {
 		buffer.putShort(source); //Our MAC address
 		buffer.put(data); //add data
 
-		//Make a real CRC. All 1's for now - CRC32 example
-		byte[] crc = {1,1,1,1};
-		buffer.put(crc);
+		//Calculating CRC
+		byte[] preCRC = buffer.array(); //Convert the data packet without the CRC field to calculate the checksum
+		Checksum checksum = new CRC32();
+		checksum.update(preCRC, 0, preCRC.length);
+		int checksumValue = (int) checksum.getValue(); //****Is this right to cast?????
+		buffer.putInt(checksumValue);
+		System.out.println("CRC is = "+checksumValue);
+
+
+		
 
 
 		byte[] toSend = buffer.array(); //the array to send
+		printPacket(toSend);
 		return toSend;
 	}
 	
