@@ -1,7 +1,6 @@
 package wifi;
-import java.io.PrintWriter;
 
-import java.util.Arrays;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -45,12 +44,12 @@ public class LinkLayer implements Dot11Interface {
 
 		//The sender thread
 		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
-		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend);
+		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(sender)).start();
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend);
+		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(recvr)).start();
 
 		output.println("LinkLayer: Constructor ran.");

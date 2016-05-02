@@ -50,14 +50,9 @@ public class PacketManipulator {
 		checksum.update(preCRC, 0, preCRC.length);
 		int checksumValue = (int) checksum.getValue(); //****Is this right to cast?????
 		buffer.putInt(checksumValue);
-		System.out.println("CRC is = "+checksumValue);
-
-
-		
 
 
 		byte[] toSend = buffer.array(); //the array to send
-		printPacket(toSend);
 		return toSend;
 	}
 	
@@ -83,8 +78,8 @@ public class PacketManipulator {
 		buffer.putShort(source); //Our MAC address
 
 		//Make a real CRC. All 1's for now - CRC32 example
-		byte[] crc = {1,1,1,1};
-		buffer.put(crc);
+		int crc = -1;
+		buffer.putInt(crc);
 
 
 		byte[] toSend = buffer.array(); //the array to send
@@ -184,7 +179,7 @@ public class PacketManipulator {
 	public static void printPacket(byte[] packet){
 		System.out.print("[ ");
 		for(int i=0; i<packet.length; i++){
-			System.out.printf("%X ", packet[i]);
+			System.out.print(packet[i] + " ");
 		}
 		System.out.println("]");
 	}

@@ -1,6 +1,8 @@
 package wifi;
 
 import rf.RF;
+
+import java.io.PrintWriter;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
@@ -20,6 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class Sender implements Runnable {
 	private RF theRF; 
+	private PrintWriter output;
 	private ConcurrentLinkedQueue<byte[]> dataToTrans;
 	private ConcurrentLinkedQueue<byte[]> rcvdACK;
 	private ConcurrentLinkedQueue<byte[]> acksToSend;
@@ -31,11 +34,14 @@ public class Sender implements Runnable {
 	private final int DIFS = this.theRF.aSIFSTime + 2*this.theRF.aSlotTime; 
 	private final int SIFS = this.theRF.aSIFSTime; 
 
-	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend){
+	
+
+	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend, PrintWriter output){
 		this.theRF = rfLayer;
 		this.dataToTrans = data;
 		this.rcvdACK = rcvdACK;
 		this.acksToSend = acksToSend;
+		this.output = output;
 	}
 
 	/**
@@ -48,22 +54,22 @@ public class Sender implements Runnable {
 				Thread.sleep(100); //Wait .1 seconds
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				System.out.println("Interrupted while waiting for Idle Channel "+e);
+				this.output.println("Interrupted while waiting for Idle Channel "+e);
 			}
 		}
-		System.out.println("Channel is now idle!");
+		this.output.println("Channel is now idle!");
 	}
 
 	/**
 	 * Waits DIFS
 	 */
 	private void waitDIFS(){
-		System.out.println("Waiting DIFS "+this.DIFS);
+		this.output.println("Waiting DIFS "+this.DIFS);
 		try{ //Sleep the thread for DIFS
 			Thread.sleep(this.DIFS); //sleep for DIFS
 		}
 		catch(InterruptedException e){ //If interrupted during sleep
-			System.out.println("Interrupted while waiting DIFS "+e);
+			this.output.println("Interrupted while waiting DIFS "+e);
 
 		}
 	}
@@ -78,7 +84,7 @@ public class Sender implements Runnable {
 			waitDIFS(); //Wait DIFS		
 			if(!this.theRF.inUse()){ //medium is still idle
 				this.theRF.transmit(dataToTrans.peek()); //transmit the frame
-				System.out.println("Transmitting data!");
+				this.output.println("Transmitting data!");
 				return; //We transmitted the frame so we are done
 			}
 		}
@@ -101,19 +107,19 @@ public class Sender implements Runnable {
 		if(this.cw > this.theRF.aCWmax)
 			this.cw = this.theRF.aCWmax; //cw can't be greater than the max cw
 
-		System.out.println("CW = " +this.cw);
+		this.output.println("CW = " +this.cw);
 
 		int backoff = (int) ((Math.random()*this.cw) * this.theRF.aSlotTime);
 
 		while(backoff > 0){ //wait the backoff while sensing and pausing when channel isn't idle
-			System.out.println("Waiting backoff = "+backoff);
+			this.output.println("Waiting backoff = "+backoff);
 			if(this.theRF.inUse()){ //the channel is in use so wait a little bit
 				try{ //Sleep the thread for aSlotTime
 					Thread.sleep(this.theRF.aSlotTime); //sleep for DIFS
-					System.out.println("Sleeping aSlotTime in backoff");
+					this.output.println("Sleeping aSlotTime in backoff");
 				}
 				catch(InterruptedException e){ //If interrupted during sleep
-					System.out.println("Interrupted while sleeping aSlotTime "+e);
+					this.output.println("Interrupted while sleeping aSlotTime "+e);
 
 				}
 			}
@@ -124,10 +130,10 @@ public class Sender implements Runnable {
 
 
 
-		System.out.println("Waiting DIFS after backoff "+this.DIFS);
+		this.output.println("Waiting DIFS after backoff "+this.DIFS);
 		//Transmit after waiting
 		this.theRF.transmit(dataToTrans.peek()); //transmit the frame
-		System.out.println("Transmitting data!");
+		this.output.println("Transmitting data!");
 	}
 
 	private boolean waitForACK(){
@@ -138,12 +144,12 @@ public class Sender implements Runnable {
 				rcvdACK.poll(); //remove the ACK
 				this.cw = this.theRF.aCWmin; //Reset collision window because successful transmit
 				this.collisionCount = 0; ////Reset the number of collisions because ""
-				System.out.println("Packet has been ACK'ed");
+				this.output.println("Packet has been ACK'ed");
 				return true; //Our packet has been ACK'ed
 			}
 
 		}
-		System.out.println("Timed out while waiting for ACK");
+		this.output.println("Timed out while waiting for ACK");
 		return false; //we timed out
 	}
 
@@ -164,7 +170,7 @@ public class Sender implements Runnable {
 						while(true){
 							this.reTrys++;
 							if(this.reTrys > this.theRF.dot11RetryLimit){ //we've reached the retry limit
-								System.out.println("Reached retry limit!");
+								this.output.println("Reached retry limit!");
 								//Reset everything
 								this.reTrys = 0;
 								this.collisionCount = 0;
@@ -172,7 +178,7 @@ public class Sender implements Runnable {
 								dataToTrans.poll(); //Remove the packet we can't seem to send
 								break;
 							}
-							System.out.println("There was a collision");
+							this.output.println("There was a collision");
 							this.collisionCount ++; //Increment the collision counter
 							backoffAndTransmit();
 							if(waitForACK()){ //After sending the packet wait for an ACK
@@ -188,7 +194,7 @@ public class Sender implements Runnable {
 				Thread.sleep(100); //Wait .1 second
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				System.out.println("Interrupted while waiting for data to brodcast "+e);
+				this.output.println("Interrupted while waiting for data to brodcast "+e);
 
 			}
 		}
@@ -201,7 +207,7 @@ public class Sender implements Runnable {
 				waitSIFS(); //Wait SIFS		
 				if(!this.theRF.inUse()){ //medium is still idle
 					this.theRF.transmit(acksToSend.poll()); //transmit the frame
-					System.out.println("Transmitting Ack!");
+					this.output.println("Transmitting Ack!");					
 					return; //We transmitted the AcK so we are done
 				}
 			}
@@ -209,7 +215,7 @@ public class Sender implements Runnable {
 				Thread.sleep(this.theRF.aSlotTime);
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				System.out.println("Interrupted while waiting for idle channel to transmit ACK "+e);
+				this.output.println("Interrupted while waiting for idle channel to transmit ACK "+e);
 
 			}
 		}
@@ -217,12 +223,12 @@ public class Sender implements Runnable {
 
 
 	private void waitSIFS() {
-		System.out.println("Waiting SIFS "+this.SIFS);
+		this.output.println("Waiting SIFS "+this.SIFS);
 		try{ //Sleep the thread for DIFS
 			Thread.sleep(this.SIFS); //sleep for DIFS
 		}
 		catch(InterruptedException e){ //If interrupted during sleep
-			System.out.println("Interrupted while waiting SIFS "+e);
+			this.output.println("Interrupted while waiting SIFS "+e);
 
 		}
 
