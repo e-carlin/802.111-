@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.zip.Checksum;
 import java.util.zip.CRC32;
 import java.io.PrintWriter;
+import static java.lang.Math.toIntExact;
 
 /**
  * A static class to construct and de-construct network order packets (byte arrays)
@@ -45,7 +46,7 @@ public class PacketManipulator {
 		buffer.putShort(source); //Our MAC address
 		buffer.put(data); //add data
 
-		//Calculating CRC
+		//Calculating CRC **I don't think this is right look to fix in buildACK packet
 		byte[] preCRC = buffer.array(); //Convert the data packet without the CRC field to calculate the checksum
 		Checksum checksum = new CRC32();
 		checksum.update(preCRC, 0, preCRC.length);
@@ -81,6 +82,17 @@ public class PacketManipulator {
 		//Make a real CRC. All 1's for now - CRC32 example
 		int crc = -1;
 		buffer.putInt(crc);
+		//Calculating CRC
+		/*
+		 * Exception gets thrown how are we supposed to fit a long in 4 bytes??
+		 */
+//		byte[] preCRC = buffer.array(); //Convert the data packet without the CRC field to calculate the checksum
+//		Checksum checksum = new CRC32();
+//		checksum.update(preCRC, 0, preCRC.length);
+//		long v = checksum.getValue(); //****Is this right to cast?????
+//		int checksumValue = toIntExact(v);
+//		System.out.println("As a long = "+v+" As an int = "+checksumValue);
+//		buffer.putInt(checksumValue);
 
 
 		byte[] toSend = buffer.array(); //the array to send
