@@ -34,7 +34,7 @@ public class Sender implements Runnable {
 	private final int DIFS = this.theRF.aSIFSTime + 2*this.theRF.aSlotTime; 
 	private final int SIFS = this.theRF.aSIFSTime; 
 
-	
+
 
 	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend, PrintWriter output){
 		this.theRF = rfLayer;
@@ -61,6 +61,21 @@ public class Sender implements Runnable {
 	}
 
 	/**
+	 * Waits SIFS
+	 */
+	private void waitSIFS() {
+		this.output.println("Waiting SIFS "+this.SIFS);
+		try{ //Sleep the thread for DIFS
+			Thread.sleep(this.SIFS); //sleep for DIFS
+		}
+		catch(InterruptedException e){ //If interrupted during sleep
+			this.output.println("Interrupted while waiting SIFS "+e);
+
+		}
+
+	}
+
+	/**
 	 * Waits DIFS
 	 */
 	private void waitDIFS(){
@@ -72,6 +87,27 @@ public class Sender implements Runnable {
 			this.output.println("Interrupted while waiting DIFS "+e);
 
 		}
+	}
+	
+	/**
+	 * Waits until an ACK arrives or a timeout occurs
+	 * @return true if we received an ACK
+	 */
+	private boolean waitForACK(){
+		long startTime = LinkLayer.clock();
+		while(LinkLayer.clock() < (startTime + TIMEOUT)){ //we haven't timed out
+			if(!rcvdACK.isEmpty()){ //We've rcvd an ack
+				//Check to make sure it is the right seq #
+				rcvdACK.poll(); //remove the ACK
+				this.cw = this.theRF.aCWmin; //Reset collision window because successful transmit
+				this.collisionCount = 0; ////Reset the number of collisions because ""
+				this.output.println("Packet has been ACK'ed");
+				return true; //Our packet has been ACK'ed
+			}
+
+		}
+		this.output.println("Timed out while waiting for ACK");
+		return false; //we timed out
 	}
 
 	/**
@@ -100,6 +136,9 @@ public class Sender implements Runnable {
 
 	}
 
+	/**
+	 * Enters the exponential backoff state to wait to transmit
+	 */
 	private void backoffAndTransmit(){
 		//Exponential backoff while medium idle
 		this.cw = this.cw*2 + 1; //Exponential increase
@@ -130,28 +169,11 @@ public class Sender implements Runnable {
 
 
 
-		this.output.println("Waiting DIFS after backoff "+this.DIFS);
 		//Transmit after waiting
 		this.theRF.transmit(dataToTrans.peek()); //transmit the frame
 		this.output.println("Transmitting data!");
 	}
 
-	private boolean waitForACK(){
-		long startTime = LinkLayer.clock();
-		while(LinkLayer.clock() < (startTime + TIMEOUT)){ //we haven't timed out
-			if(!rcvdACK.isEmpty()){ //We've rcvd an ack
-				//Check to make sure it is the right seq #
-				rcvdACK.poll(); //remove the ACK
-				this.cw = this.theRF.aCWmin; //Reset collision window because successful transmit
-				this.collisionCount = 0; ////Reset the number of collisions because ""
-				this.output.println("Packet has been ACK'ed");
-				return true; //Our packet has been ACK'ed
-			}
-
-		}
-		this.output.println("Timed out while waiting for ACK");
-		return false; //we timed out
-	}
 
 
 	@Override
@@ -206,7 +228,7 @@ public class Sender implements Runnable {
 			if(!this.theRF.inUse()){ //medium is idle				
 				waitSIFS(); //Wait SIFS		
 				if(!this.theRF.inUse()){ //medium is still idle
-										
+
 					this.output.print("Transmitting ACK ");
 					PacketManipulator.printPacket(output, acksToSend.peek());
 					this.theRF.transmit(acksToSend.poll()); //transmit the frame
@@ -224,17 +246,7 @@ public class Sender implements Runnable {
 	}
 
 
-	private void waitSIFS() {
-		this.output.println("Waiting SIFS "+this.SIFS);
-		try{ //Sleep the thread for DIFS
-			Thread.sleep(this.SIFS); //sleep for DIFS
-		}
-		catch(InterruptedException e){ //If interrupted during sleep
-			this.output.println("Interrupted while waiting SIFS "+e);
 
-		}
-
-	}
 }
 
 

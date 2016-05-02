@@ -52,7 +52,7 @@ public class LinkLayer implements Dot11Interface {
 		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(recvr)).start();
 
-		output.println("LinkLayer: Constructor ran.");
+		output.println("LinkLayer initialized using a random MAC address:"+this.ourMAC);
 	}
 
 	/**
