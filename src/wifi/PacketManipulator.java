@@ -14,13 +14,13 @@ import static java.lang.Math.toIntExact;
  *
  */
 public class PacketManipulator {
-	
 
-	
+
+
 	private static final int SIZE_CONTROL = 2; //2 bytes of control
 	private static final int SIZE_ADDR = 2; //2 bytes of address
 	private static final int SIZE_CRC = 4; //4 bytes of CRC
-	private static final int MIN_SIZE_BUF = SIZE_CONTROL + SIZE_ADDR*2 + SIZE_CRC; //There are always 10 bytes of non-data info in a packet (Ex. src address, checksum...)
+	//	private static final int MIN_SIZE_BUF = SIZE_CONTROL + SIZE_ADDR*2; //There are always 10 bytes of non-data info in a packet (Ex. src address, checksum...)
 
 	/**
 	 * Constructs network ordered data packets
@@ -32,32 +32,34 @@ public class PacketManipulator {
 	 * @return the fully constructed packet
 	 */
 	public static byte[] buildDataPacket(short dest, short source, byte[] data, int len, int sequenceNum){
-		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF+len); //Min 10 bytes of control, address, and CRC + len of data
+		ByteBuffer noCRC = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+len); //Packet w/o CRC
 		int controlBits = 0b000_00000;
 		int controlMask = 0b111_00000;
 		int seqMSBMask = 0x0F;
 		int seqMSB = sequenceNum >> 8;
-		
+
 		byte firstByte = (byte)((controlBits & controlMask) + (seqMSB & seqMSBMask));
 		byte secondByte = (byte)(0xFF & sequenceNum);
-		buffer.put(new byte[] {firstByte, secondByte});
-			
-		buffer.putShort(dest); //add the destination MAC address
-		buffer.putShort(source); //Our MAC address
-		buffer.put(data); //add data
+		noCRC.put(new byte[] {firstByte, secondByte});
 
-		//Calculating CRC **I don't think this is right look to fix in buildACK packet
-		byte[] preCRC = buffer.array(); //Convert the data packet without the CRC field to calculate the checksum
+		noCRC.putShort(dest); //add the destination MAC address
+		noCRC.putShort(source); //Our MAC address
+		noCRC.put(data); //add data
+
+		//Calculating CRC
+		byte[] preCRC = noCRC.array(); //Convert the data packet without the CRC field to calculate the checksum
 		Checksum checksum = new CRC32();
 		checksum.update(preCRC, 0, preCRC.length);
 		int checksumValue = (int) checksum.getValue(); //****Is this right to cast?????
-		buffer.putInt(checksumValue);
+
+		ByteBuffer toSend = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+len + SIZE_CRC); //full packet with the CRC
+		toSend.put(preCRC);
+		toSend.putInt(checksumValue);
 
 
-		byte[] toSend = buffer.array(); //the array to send
-		return toSend;
+		return toSend.array();
 	}
-	
+
 	/**
 	 * Constructs ack  packet
 	 * @param dest the destination MAC address
@@ -65,40 +67,34 @@ public class PacketManipulator {
 	 * @return the fully constructed packet
 	 */
 	public static byte[] buildACKPacket(short dest, short source, int sequenceNum){
-		ByteBuffer buffer = ByteBuffer.allocate(MIN_SIZE_BUF); //10 bytes of control, address, and CRC
-		
+		ByteBuffer noCRC = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2); //10 bytes of control, address, and CRC
+
 		int controlBits = 0b001_00000; //ack
 		int controlMask = 0b111_00000;
 		int seqMSBMask = 0x0F;
 		int seqMSB = sequenceNum >> 8;
-		
+
 		byte firstByte = (byte)((controlBits & controlMask) + (seqMSB & seqMSBMask));
 		byte secondByte = (byte)(0xFF & sequenceNum);
-		buffer.put(new byte[] {firstByte, secondByte});
-			
-		buffer.putShort(dest); //add the destination MAC address
-		buffer.putShort(source); //Our MAC address
+		noCRC.put(new byte[] {firstByte, secondByte});
 
-		//Make a real CRC. All 1's for now - CRC32 example
-		int crc = -1;
-		buffer.putInt(crc);
+		noCRC.putShort(dest); //add the destination MAC address
+		noCRC.putShort(source); //Our MAC address
+
 		//Calculating CRC
-		/*
-		 * Exception gets thrown how are we supposed to fit a long in 4 bytes??
-		 */
-//		byte[] preCRC = buffer.array(); //Convert the data packet without the CRC field to calculate the checksum
-//		Checksum checksum = new CRC32();
-//		checksum.update(preCRC, 0, preCRC.length);
-//		long v = checksum.getValue(); //****Is this right to cast?????
-//		int checksumValue = toIntExact(v);
-//		System.out.println("As a long = "+v+" As an int = "+checksumValue);
-//		buffer.putInt(checksumValue);
+		byte[] preCRC = noCRC.array(); //Convert the data packet without the CRC field to calculate the checksum
+		Checksum checksum = new CRC32();
+		checksum.update(preCRC, 0, preCRC.length);
+		int checksumValue = (int) checksum.getValue(); //****Is this right to cast?????
+
+		ByteBuffer toSend = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+ SIZE_CRC); //full packet with the CRC
+		toSend.put(preCRC);
+		toSend.putInt(checksumValue);
 
 
-		byte[] toSend = buffer.array(); //the array to send
-		return toSend;
+		return toSend.array();
 	}
-	
+
 	/**
 	 * sets an existing packet retry bit to 1
 	 * @param prevPacket existing packet
@@ -109,7 +105,7 @@ public class PacketManipulator {
 		prevPacket[0] |= retryMask;
 		return prevPacket;
 	}
-	
+
 	/**
 	 * A method that extracts the destination adress from a packet
 	 * @param data the packet we want to extract address from
@@ -146,22 +142,22 @@ public class PacketManipulator {
 	 */
 	public static byte[] getData(byte[] recvdData){
 
-		byte[] data = new byte[recvdData.length-MIN_SIZE_BUF]; //-6 -4 = -10 (6 bytes for control and addressing, 4 for CRC)
+		byte[] data = new byte[recvdData.length-(SIZE_CONTROL+SIZE_ADDR*2+SIZE_CRC)]; //-6 -4 = -10 (6 bytes for control and addressing, 4 for CRC)
 		for(int i=6; i<recvdData.length-4;i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where data can lie
 			data[i-6] = recvdData[i];
 		}
 
 		return data;
 	}
-	
+
 	public static int getSeqNum(byte[] packet){
 		int seqMSBMask = 0x0F;
 		int seqMSB = packet[0] & seqMSBMask;
 		int seqLSB = packet[1];
-		
+
 		return (seqMSB << 8) + seqLSB;
 	}
-	
+
 	/**
 	 * ****** I think this works??*****
 	 * This function reads the Frame Type bits of the Control field to determine
@@ -169,36 +165,36 @@ public class PacketManipulator {
 	 * @param recvdData The packet to examine
 	 * @return Whether or not the packet is a data packet
 	 */
-	
+
 	public static boolean isDataPacket(byte[] recvdData){
-		
+
 		byte typeData = 0b000_0000;
-		
+
 		if( (recvdData[0] & 0b1110_0000) == typeData ) //if the type of rcvd packet is data
 			return true;
 		else
 			return false;
 	}
-	
+
 	public static boolean isACKPacket(byte[] recvdData){
-		
+
 		byte typeACK = 0b0010_0000;
 		if((recvdData[0] & 0b1110000) == typeACK)
 			return true;
 		else
 			return false;
 	}
-	
+
 	public static void printPacket(PrintWriter output,byte[] packet){
 		output.print("[ ");
-		
+
 		if(PacketManipulator.isDataPacket(packet))
 			output.print("Data ");
 		else if(PacketManipulator.isACKPacket(packet));
-			output.print("ACK ");
+		output.print("ACK ");
 
 		output.print(PacketManipulator.getSourceAddr(packet) + " –> " + PacketManipulator.getDestAddr(packet));
-		
+
 		output.print("  CRC?? ");
 		output.println("]");
 	}
