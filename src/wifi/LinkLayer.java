@@ -16,6 +16,22 @@ public class LinkLayer implements Dot11Interface {
 	private static RF theRF;           // You'll need one of these eventually
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
+	
+	public static int diagLevel;
+	public static boolean slotRandom;
+	public static int beaconInterval;
+	public static int statusCode;
+	
+	public static final int SUCCESS						=1;
+	public static final int UNSPECIFIED_ERROR			=2;
+	public static final int RF_INIT_FAILED				=3;
+	public static final int TX_DELIVERED				=4;
+	public static final int TX_FAILED					=5;
+	public static final int BAD_BUF_SIZE				=6;
+	public static final int BAD_ADDRESS					=7;
+	public static final int BAD_MAC_ADDRESS				=8;
+	public static final int ILLEGAL_ARGUMENT			=9;
+	public static final int INSUFFICIENT_BUFFER_SPACE	=10;
 	private static long RFClockOffset = 0; //The amount of clock offset
 
 	private HashMap<Short, Integer> sequenceMap; //maps mac addresses to the current sequence number
@@ -33,16 +49,21 @@ public class LinkLayer implements Dot11Interface {
 	 * @param output  Output stream associated with GUI
 	 */
 	public LinkLayer(short ourMAC, PrintWriter output) {
+		LinkLayer.statusCode = SUCCESS;
 		this.ourMAC = ourMAC;
 		this.output = output;      
 		this.theRF = new RF(null, null);
-
+		
 		sequenceMap = new HashMap<Short, Integer>();
 
 		//Shared between sender and recvr
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
+		LinkLayer.diagLevel = 0;
+		LinkLayer.slotRandom = true;
+		LinkLayer.beaconInterval = 5; //Default to interval of 5 seconds
+		
 		//The sender thread
 		this.dataToTrans = new Vector<byte[]>();
 		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
@@ -82,8 +103,10 @@ public class LinkLayer implements Dot11Interface {
 		boolean successAdding = dataToTrans.add(toSend);
 		if(successAdding) //success adding to the vector
 			return len;
-		else
+		else{
+			LinkLayer.statusCode = LinkLayer.TX_FAILED;
 			return -1;
+		}
 	}
 
 	/**
@@ -117,7 +140,6 @@ public class LinkLayer implements Dot11Interface {
 		t.setBuf(data); 
 
 		this.dataRcvd.remove(0); //delete the packet we just processed
-
 		return data.length;
 	}
 
@@ -140,15 +162,44 @@ public class LinkLayer implements Dot11Interface {
 	 * Returns a current status code.  See docs for full description.
 	 */
 	public int status() {
-		output.println("LinkLayer: Faking a status() return value of 0");
-		return 0;
+		return statusCode;
 	}
 
 	/**
 	 * Passes command info to your link layer.  See docs for full description.
 	 */
 	public int command(int cmd, int val) {
-		output.println("LinkLayer: Sending command "+cmd+" with value "+val);
+		//output.println("LinkLayer: Sending command "+cmd+" with value "+val);
+		
+		switch(cmd){
+			case 0:
+				output.println("Diagnostic level: " + diagLevel);
+				output.print("Collision Window Slot Choice:");
+				if(slotRandom) output.println("Random.");
+					else output.println("Fixed.");
+				output.println("Beacon Interval: " + beaconInterval + " seconds.");
+				output.println("Commands available:\n\t0)Print Commands\n\t1)Set Diagnostic Level\n\t2)Slot Random/Fixed\n\t3)Beacon Frame Interval");
+				break;
+			case 1:
+				output.println("Setting diagnostic level to "+ val);
+				LinkLayer.diagLevel = val;
+				break;
+			case 2:
+				if(val==0){
+					output.println("Setting Slot Window to Random.");
+					slotRandom = true;
+				}else if (val==1){
+					output.println("Setting Slot Window to Fixed.");
+					slotRandom = false;
+				}else{
+					output.println("Expecting 0 for random or 1 for fixed.  Try again.");
+				}
+				break;
+			case 3:
+				output.println("Setting beacon interval to "+val+" seconds.");
+				LinkLayer.beaconInterval = val;
+				break;
+		}
 		return 0;
 	}
 }
