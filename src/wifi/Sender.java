@@ -23,9 +23,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class Sender implements Runnable {
 	private RF theRF; 
 	private PrintWriter output;
-	private Vector<byte[]> dataToTrans;
-	private ConcurrentLinkedQueue<byte[]> rcvdACK;
-	private ConcurrentLinkedQueue<byte[]> acksToSend;
+	private Vector<byte[]> dataToTrans; //Data waiting to be transmitted
+	private ConcurrentLinkedQueue<byte[]> rcvdACK; //ACKS received in Receiver thread
+	private ConcurrentLinkedQueue<byte[]> acksToSend; //ACKS waiting to be transmitted
 
 	private int cw = this.theRF.aCWmin; //The current collision window
 	private int collisionCount = 0; //The number of collisions that have occurred since the last successful transmit
@@ -57,7 +57,7 @@ public class Sender implements Runnable {
 				this.output.println("Interrupted while waiting for Idle Channel "+e);
 			}
 		}
-		this.output.println("Channel is now idle!");
+		//		this.output.println("Channel is now idle!");
 	}
 
 	/**
@@ -92,7 +92,7 @@ public class Sender implements Runnable {
 
 	/**
 	 * Waits until an ACK arrives or a timeout occurs
-	 * @return true if we received an ACK
+	 * @return true if we received an ACK before timeout
 	 */
 	private boolean waitForACK(){
 		long startTime = LinkLayer.clock();
@@ -105,6 +105,13 @@ public class Sender implements Runnable {
 				this.output.println("Packet has been ACK'ed");
 				return true; //Our packet has been ACK'ed
 			}
+			try{ //Sleep the thread for 20ms
+				Thread.sleep(20);
+			}
+			catch(InterruptedException e){ //If interrupted during sleep
+				this.output.println("Interrupted while sleeping waiting for an ACK "+e);
+				LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
+			}
 
 		}
 		this.output.println("Timed out while waiting for ACK");
@@ -112,7 +119,7 @@ public class Sender implements Runnable {
 	}
 
 	/**
-	 * Waits for the channel to be 
+	 * Wait SIFS and then send the ACK 
 	 */
 	private void waitAndSendAck() {
 		waitSIFS(); //Wait SIFS		
@@ -122,7 +129,7 @@ public class Sender implements Runnable {
 	}
 
 	/**
-	 * A method that waits DIFS and attempts to transmit a packet
+	 * A method that waits DIFS and attempts to transmit a packet if the channel is idle
 	 * @return whether or not we were able to successfully transmit the packet
 	 */
 	private void waitAndSendData(){
@@ -143,7 +150,7 @@ public class Sender implements Runnable {
 			if(!this.theRF.inUse()) //The channel is finally idle
 				break;
 		}
-		backoffAndTransmit();
+		backoffAndTransmit();  //Since the channel was in use we must go to the exponential backoff state
 		return; //We transmitted the frame so we are done!
 	}
 
@@ -152,7 +159,7 @@ public class Sender implements Runnable {
 	 */
 	private void backoffAndTransmit(){
 		//Exponential backoff while medium idle
-		this.cw = this.cw*2 + 1; //Exponential increase
+		this.cw = this.cw*2 + 1; //Increase collision window
 
 		if(this.cw > this.theRF.aCWmax)
 			this.cw = this.theRF.aCWmax; //cw can't be greater than the max cw
@@ -181,7 +188,7 @@ public class Sender implements Runnable {
 
 
 		//Transmit after waiting
-		this.theRF.transmit(dataToTrans.get(0)); //transmit the frame
+		this.theRF.transmit(dataToTrans.get(0)); //transmit the frame - don't remove it because we need to wait for an ACK
 		this.output.println("Transmitting data!");
 		LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 	}
