@@ -30,7 +30,7 @@ public class Sender implements Runnable {
 	private int cw = this.theRF.aCWmin; //The current collision window
 	private int collisionCount = 0; //The number of collisions that have occurred since the last successful transmit
 	private int reTrys = 0; //the number of times we have tried to send a packet
-	private final int ACK_TIMEOUT = this.theRF.aSIFSTime +350+ this.theRF.aSlotTime; //ACKTimeout = SIFS + ACK Transmission Duration + SlotTime 
+	private final int ACK_TIMEOUT = this.theRF.aSIFSTime +400+ this.theRF.aSlotTime; // How long to wait for an ACK = SIFS + ACK Transmission Duration + SlotTime 
 
 	private final int DIFS = this.theRF.aSIFSTime + 2*this.theRF.aSlotTime; 
 	private final int SIFS = this.theRF.aSIFSTime; 
@@ -47,7 +47,6 @@ public class Sender implements Runnable {
 
 	/**
 	 * Waits for channel to be idle
-	 * ****Should we be sleeping in here waiting for channel to be idle??
 	 */
 	private void waitForIdleChannel(){
 		while(this.theRF.inUse()){
@@ -81,7 +80,7 @@ public class Sender implements Runnable {
 	 * Waits DIFS
 	 */
 	private void waitDIFS(){
-		this.output.println("Waiting DIFS "+this.DIFS);
+		this.output.println("Waiting DIFS");
 		try{ //Sleep the thread for DIFS
 			Thread.sleep(this.DIFS); //sleep for DIFS
 		}
@@ -90,7 +89,7 @@ public class Sender implements Runnable {
 			this.output.println("Interrupted while waiting DIFS "+e);
 		}
 	}
-	
+
 	/**
 	 * Waits until an ACK arrives or a timeout occurs
 	 * @return true if we received an ACK
@@ -110,6 +109,16 @@ public class Sender implements Runnable {
 		}
 		this.output.println("Timed out while waiting for ACK");
 		return false; //we timed out
+	}
+
+	/**
+	 * Waits for the channel to be 
+	 */
+	private void waitAndSendAck() {
+		waitSIFS(); //Wait SIFS		
+		this.output.print("Transmitting ACK ");
+		PacketManipulator.printPacket(output, acksToSend.peek());
+		this.theRF.transmit(acksToSend.poll()); //transmit the frame
 	}
 
 	/**
@@ -225,31 +234,6 @@ public class Sender implements Runnable {
 		}
 
 	}
-
-	private void waitAndSendAck() {
-		while(true){
-			if(!this.theRF.inUse()){ //medium is idle				
-				waitSIFS(); //Wait SIFS		
-				if(!this.theRF.inUse()){ //medium is still idle
-
-					this.output.print("Transmitting ACK ");
-					PacketManipulator.printPacket(output, acksToSend.peek());
-					this.theRF.transmit(acksToSend.poll()); //transmit the frame
-					return; //We transmitted the AcK so we are done
-				}
-			}
-			try{
-				Thread.sleep(this.theRF.aSlotTime);
-			}
-			catch(InterruptedException e){ //If interrupted during sleep
-				this.output.println("Interrupted while waiting for idle channel to transmit ACK "+e);
-
-			}
-		}
-	}
-
-
-
 }
 
 
