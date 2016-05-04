@@ -16,12 +16,12 @@ public class LinkLayer implements Dot11Interface {
 	private static RF theRF;           // You'll need one of these eventually
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
-	private static long offset = 0; //The amount of clock offset
+	private static long RFClockOffset = 0; //The amount of clock offset
 
 	private HashMap<Short, Integer> sequenceMap; //maps mac addresses to the current sequence number
 
 	//Data shared with threads
-	private ConcurrentLinkedQueue<byte[]> dataToTrans; //Outgoing data app->transmit
+	private Vector<byte[]> dataToTrans; //Outgoing data app->transmit
 	private ConcurrentLinkedQueue<byte[]> rcvdACK;
 	private Vector<byte[]> dataRcvd; //Incoming data recv->app
 	private ConcurrentLinkedQueue<byte[]> acksToSend;
@@ -44,7 +44,7 @@ public class LinkLayer implements Dot11Interface {
 		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
 		//The sender thread
-		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
+		this.dataToTrans = new Vector<byte[]>();
 		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(sender)).start();
 
@@ -61,7 +61,10 @@ public class LinkLayer implements Dot11Interface {
 	 * of bytes to send.  See docs for full description.
 	 */
 	public int send(short dest, byte[] data, int len) {
-		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
+		if(dataToTrans.size() == 4) //Don't queue more than 4 packets
+			return 0;
+			
+		output.println("LinkLayer: Trying to send "+len+" bytes to "+dest);
 
 		//add the packet to the shared Vector
 		Integer currentSeqNumber = sequenceMap.get(dest);
@@ -125,15 +128,12 @@ public class LinkLayer implements Dot11Interface {
 	 * @return the clock time
 	 */
 	public static long clock(){
-		return theRF.clock() + offset;
+		return theRF.clock() + RFClockOffset;
 	}
 
 	public static void updateClock(long time){
-		System.out.println("Beacon time = "+time);
-		System.out.println("Curr time   = "+clock());
 		if(time > clock())
-			offset = time - clock();
-		System.out.println("Updated time= "+clock()+"\n");
+			RFClockOffset = time - clock();
 		
 	}
 	/**

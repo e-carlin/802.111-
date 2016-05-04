@@ -143,8 +143,8 @@ public class PacketManipulator {
 	public static byte[] getData(byte[] recvdData){
 
 		byte[] data = new byte[recvdData.length-(SIZE_CONTROL+SIZE_ADDR*2+SIZE_CRC)]; //-6 -4 = -10 (6 bytes for control and addressing, 4 for CRC)
-		for(int i=SIZE_CONTROL+SIZE_ADDR*2; i<recvdData.length-SIZE_CRC;i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where data can lie
-			data[i-SIZE_CONTROL+SIZE_ADDR*2] = recvdData[i];
+		for(int i=6; i<recvdData.length-4;i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where data can lie
+			data[i-6] = recvdData[i];
 		}
 
 		return data;
@@ -196,7 +196,6 @@ public class PacketManipulator {
 	
 	public static long getTimeFromBeacon(byte[] packet){
 		byte[] time = new byte[8]; //8 bytes for a long
-//		for(int i=SIZE_CONTROL+SIZE_ADDR*2; i<(SIZE_CONTROL+SIZE_ADDR*2 + 8);i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where timestamp is
 		for(int i=6;i<6+8;i++){
 			time[i-6] = packet[i];
 		}
