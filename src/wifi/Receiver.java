@@ -48,7 +48,6 @@ public class Receiver implements Runnable {
 				if(PacketManipulator.isBeaconFrame(packet)){ //If it is a beacon frame then update our clock
 					LinkLayer.updateClock(PacketManipulator.getTimeFromBeacon(packet));
 				}
-				if(destAddr == 2){
 					else if(PacketManipulator.isDataPacket(packet)){
 						dataRcvd.add(packet);
 						if(destAddr != -1){ //We don't ACK broadcast packets
@@ -64,9 +63,8 @@ public class Receiver implements Runnable {
 						rcvdACK.add(packet);
 				}
 			}
+
 		}
-
-
 	}
 
-}
+
