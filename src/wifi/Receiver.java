@@ -48,7 +48,8 @@ public class Receiver implements Runnable {
 				if(PacketManipulator.isBeaconFrame(packet)){ //If it is a beacon frame then update our clock
 					LinkLayer.updateClock(PacketManipulator.getTimeFromBeacon(packet));
 				}
-					else if(PacketManipulator.isDataPacket(packet)){
+				if(dataRcvd.size() < 5){ //Drop the incoming packet if there are already 4 queued up
+					if(PacketManipulator.isDataPacket(packet)){
 						dataRcvd.add(packet);
 						if(destAddr != -1){ //We don't ACK broadcast packets
 
@@ -63,8 +64,15 @@ public class Receiver implements Runnable {
 						rcvdACK.add(packet);
 				}
 			}
-
+			try{ //Sleep a bit
+				Thread.sleep(100); //sleep for 100ms
+			}
+			catch(InterruptedException e){ //If interrupted during sleep
+				this.output.println("Interrupted while sleeping in Recv "+e);
+			}
 		}
+
 	}
+}
 
 

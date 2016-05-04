@@ -8,9 +8,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 
-
 /**
- * Need to add max number of tries to transmit probably in while loop with backoff in run()
+ * Timeout times were calculated between a machine running osx 10.11 and a virtual machine running Unbuntu 14.04.4
  */
 
 
@@ -31,7 +30,8 @@ public class Sender implements Runnable {
 	private int cw = this.theRF.aCWmin; //The current collision window
 	private int collisionCount = 0; //The number of collisions that have occurred since the last successful transmit
 	private int reTrys = 0; //the number of times we have tried to send a packet
-	private final int TIMEOUT = 10000; //milliseconds - This is completely made up need better number
+	private final int ACK_TIMEOUT = this.theRF.aSIFSTime +350+ this.theRF.aSlotTime; //ACKTimeout = SIFS + ACK Transmission Duration + SlotTime 
+
 	private final int DIFS = this.theRF.aSIFSTime + 2*this.theRF.aSlotTime; 
 	private final int SIFS = this.theRF.aSIFSTime; 
 
@@ -97,7 +97,7 @@ public class Sender implements Runnable {
 	 */
 	private boolean waitForACK(){
 		long startTime = LinkLayer.clock();
-		while(LinkLayer.clock() < (startTime + TIMEOUT)){ //we haven't timed out
+		while(LinkLayer.clock() < (startTime + ACK_TIMEOUT)){ //we haven't timed out
 			if(!rcvdACK.isEmpty()){ //We've rcvd an ack
 				//Check to make sure it is the right seq #
 				rcvdACK.poll(); //remove the ACK

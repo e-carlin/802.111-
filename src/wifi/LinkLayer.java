@@ -82,7 +82,7 @@ public class LinkLayer implements Dot11Interface {
 	 * of bytes to send.  See docs for full description.
 	 */
 	public int send(short dest, byte[] data, int len) {
-		if(dataToTrans.size() == 4) //Don't queue more than 4 packets
+		if(dataToTrans.size() > 3) //Don't queue more than 4 packets
 			return 0;
 			
 		output.println("LinkLayer: Trying to send "+len+" bytes to "+dest);
