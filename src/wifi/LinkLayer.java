@@ -16,7 +16,8 @@ public class LinkLayer implements Dot11Interface {
 	private static RF theRF;           // You'll need one of these eventually
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
-	
+	private static long offset = 0; //The amount of clock offset
+
 	private HashMap<Short, Integer> sequenceMap; //maps mac addresses to the current sequence number
 
 	//Data shared with threads
@@ -35,9 +36,9 @@ public class LinkLayer implements Dot11Interface {
 		this.ourMAC = ourMAC;
 		this.output = output;      
 		this.theRF = new RF(null, null);
-		
+
 		sequenceMap = new HashMap<Short, Integer>();
-		
+
 		//Shared between sender and recvr
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
@@ -49,7 +50,7 @@ public class LinkLayer implements Dot11Interface {
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output);
+		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output, null);
 		(new Thread(recvr)).start();
 
 		output.println("LinkLayer initialized using a random MAC address:"+this.ourMAC);
@@ -65,16 +66,16 @@ public class LinkLayer implements Dot11Interface {
 		//add the packet to the shared Vector
 		Integer currentSeqNumber = sequenceMap.get(dest);
 		if(currentSeqNumber == null){
-			 int newSeqNumber = 0; //always start with 0;
-			 sequenceMap.put(dest, newSeqNumber);
-			 currentSeqNumber = newSeqNumber;
+			int newSeqNumber = 0; //always start with 0;
+			sequenceMap.put(dest, newSeqNumber);
+			currentSeqNumber = newSeqNumber;
 		}
 		//Construct the data packet
 		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len, currentSeqNumber);
-		
+
 		currentSeqNumber = (currentSeqNumber + toSend.length) % WINDOW_SIZE;
 		sequenceMap.put(dest, currentSeqNumber);
-		
+
 		boolean successAdding = dataToTrans.add(toSend);
 		if(successAdding) //success adding to the vector
 			return len;
@@ -101,7 +102,7 @@ public class LinkLayer implements Dot11Interface {
 
 		//There is new info so process it
 		byte[] dataRcvd = this.dataRcvd.get(0);
-		
+
 		//add the info to the transmission object
 		short destAddr = PacketManipulator.getDestAddr(dataRcvd);
 		t.setDestAddr(destAddr);
@@ -116,13 +117,24 @@ public class LinkLayer implements Dot11Interface {
 
 		return data.length;
 	}
-	
+
 	/**
-	 * This function returns the RF layers clock time
+	 * This function allows for updating the clock value as well as adding an offset so that it is synced with other clocks
+	 * @param time If -1 the method returns the current clock time (with offset) if != -1 then it will try to update the clock
+	 * time and give back the new clock time. It only updates the clock time if it would be greater than current clock time
 	 * @return the clock time
 	 */
 	public static long clock(){
-		return theRF.clock();
+		return theRF.clock() + offset;
+	}
+
+	public static void updateClock(long time){
+		System.out.println("Beacon time = "+time);
+		System.out.println("Curr time   = "+clock());
+		if(time > clock())
+			offset = time - clock();
+		System.out.println("Updated time= "+clock()+"\n");
+		
 	}
 	/**
 	 * Returns a current status code.  See docs for full description.

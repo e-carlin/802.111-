@@ -21,21 +21,27 @@ public class Receiver implements Runnable {
 	private ConcurrentLinkedQueue<byte[]> acksToSend;
 	//TODO shared AcksToSend queue (sender waits SIFS always, sends ack if needed, waits remaining time for DIFS otherwise)
 	private ConcurrentLinkedQueue<byte[]> rcvdACK; 
+	private ConcurrentLinkedQueue<byte[]> rcvdBeacon;
 	private short ourMAC; //our MAC address
 
-	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]> acksToSend, PrintWriter output){
+	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]> acksToSend, PrintWriter output, ConcurrentLinkedQueue<byte[]> rcvdBeacon){
 		this.theRF = rf;
 		this.dataRcvd = data;
 		this.rcvdACK = rcvdACK;
 		this.ourMAC = ourMAC;
 		this.acksToSend = acksToSend;
+		this.rcvdBeacon = rcvdBeacon;
 		this.output = output;
 	}
 	@Override
 	public void run() {
 
 		while(true){
-			byte[] packet = this.theRF.receive(); //block until a packet is received	
+			byte[] packet = this.theRF.receive(); //block until a packet is received
+			if(PacketManipulator.isBeaconFrame(packet)){
+				LinkLayer.updateClock(PacketManipulator.getTimeFromBeacon(packet));
+			}
+				
 			
 			 //Check to make sure we are the desired destination or -1 for a broadcast message
 			short destAddr = PacketManipulator.getDestAddr(packet);

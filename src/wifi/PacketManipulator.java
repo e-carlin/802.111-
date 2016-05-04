@@ -143,8 +143,8 @@ public class PacketManipulator {
 	public static byte[] getData(byte[] recvdData){
 
 		byte[] data = new byte[recvdData.length-(SIZE_CONTROL+SIZE_ADDR*2+SIZE_CRC)]; //-6 -4 = -10 (6 bytes for control and addressing, 4 for CRC)
-		for(int i=6; i<recvdData.length-4;i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where data can lie
-			data[i-6] = recvdData[i];
+		for(int i=SIZE_CONTROL+SIZE_ADDR*2; i<recvdData.length-SIZE_CRC;i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where data can lie
+			data[i-SIZE_CONTROL+SIZE_ADDR*2] = recvdData[i];
 		}
 
 		return data;
@@ -185,6 +185,26 @@ public class PacketManipulator {
 			return false;
 	}
 
+	public static boolean isBeaconFrame(byte[] packet){
+		byte typeBeacon = 0b0100_0000;
+		if((packet[0] & 0b1110_0000) == typeBeacon)
+			return true;
+		else
+			return false;
+
+	}
+	
+	public static long getTimeFromBeacon(byte[] packet){
+		byte[] time = new byte[8]; //8 bytes for a long
+//		for(int i=SIZE_CONTROL+SIZE_ADDR*2; i<(SIZE_CONTROL+SIZE_ADDR*2 + 8);i++){ //6 bytes to length-4 (eliminate control, addressing, and CRC) is where timestamp is
+		for(int i=6;i<6+8;i++){
+			time[i-6] = packet[i];
+		}
+		
+		return ByteBuffer.wrap(time).getLong();
+	}
+
+
 	public static void printPacket(PrintWriter output,byte[] packet){
 		output.print("[ ");
 
@@ -198,5 +218,6 @@ public class PacketManipulator {
 		output.print("  CRC?? ");
 		output.println("]");
 	}
+
 
 }
