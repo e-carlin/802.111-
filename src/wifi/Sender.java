@@ -3,6 +3,7 @@ package wifi;
 import rf.RF;
 
 import java.io.PrintWriter;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
@@ -23,7 +24,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class Sender implements Runnable {
 	private RF theRF; 
 	private PrintWriter output;
-	private ConcurrentLinkedQueue<byte[]> dataToTrans;
+	private Vector<byte[]> dataToTrans;
 	private ConcurrentLinkedQueue<byte[]> rcvdACK;
 	private ConcurrentLinkedQueue<byte[]> acksToSend;
 
@@ -36,7 +37,7 @@ public class Sender implements Runnable {
 
 
 
-	Sender(RF rfLayer, ConcurrentLinkedQueue<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend, PrintWriter output){
+	Sender(RF rfLayer, Vector<byte[]> data, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]>acksToSend, PrintWriter output){
 		this.theRF = rfLayer;
 		this.dataToTrans = data;
 		this.rcvdACK = rcvdACK;
@@ -120,7 +121,7 @@ public class Sender implements Runnable {
 		if(!this.theRF.inUse()){ //medium is idle				
 			waitDIFS(); //Wait DIFS		
 			if(!this.theRF.inUse()){ //medium is still idle
-				this.theRF.transmit(dataToTrans.peek()); //transmit the frame
+				this.theRF.transmit(dataToTrans.get(0)); //transmit the frame
 				this.output.println("Transmitting data!");
 				LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 				return; //We transmitted the frame so we are done
@@ -171,7 +172,7 @@ public class Sender implements Runnable {
 
 
 		//Transmit after waiting
-		this.theRF.transmit(dataToTrans.peek()); //transmit the frame
+		this.theRF.transmit(dataToTrans.get(0)); //transmit the frame
 		this.output.println("Transmitting data!");
 		LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 	}
@@ -187,7 +188,7 @@ public class Sender implements Runnable {
 				}else{
 					waitAndSendData(); //Do necessary sensing, waiting, and transmitting
 					if(waitForACK()){ //After sending the packet wait for an ACK
-						dataToTrans.poll(); //Remove this packet
+						dataToTrans.remove(0);; //Remove this packet
 						break; //We've rcvd the ACK so were all done with this packet!
 					}else{ //We timed out while waiting for an ACK so there must have been a collision
 						//Exponential backoff and retransmit
@@ -199,14 +200,14 @@ public class Sender implements Runnable {
 								this.reTrys = 0;
 								this.collisionCount = 0;
 								this.cw = this.theRF.aCWmin;
-								dataToTrans.poll(); //Remove the packet we can't seem to send
+								dataToTrans.remove(0); //Remove the packet we can't seem to send
 								break;
 							}
 							this.output.println("There was a collision");
 							this.collisionCount ++; //Increment the collision counter
 							backoffAndTransmit();
 							if(waitForACK()){ //After sending the packet wait for an ACK
-								dataToTrans.poll(); //Remove this packet
+								dataToTrans.remove(0); //Remove this packet
 								break; //We've rcvd the ACK so were all done with this packet!
 							}
 							//else retry because we didn't retrieve an ACK

@@ -184,6 +184,25 @@ public class PacketManipulator {
 			return false;
 	}
 
+	public static boolean isBeaconFrame(byte[] packet){
+		byte typeBeacon = 0b0100_0000;
+		if((packet[0] & 0b1110_0000) == typeBeacon)
+			return true;
+		else
+			return false;
+
+	}
+	
+	public static long getTimeFromBeacon(byte[] packet){
+		byte[] time = new byte[8]; //8 bytes for a long
+		for(int i=6;i<6+8;i++){
+			time[i-6] = packet[i];
+		}
+		
+		return ByteBuffer.wrap(time).getLong();
+	}
+
+
 	public static void printPacket(PrintWriter output,byte[] packet){
 		output.print("[ ");
 
@@ -197,5 +216,6 @@ public class PacketManipulator {
 		output.print("  CRC?? ");
 		output.println("]");
 	}
+
 
 }

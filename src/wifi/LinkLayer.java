@@ -32,11 +32,12 @@ public class LinkLayer implements Dot11Interface {
 	public static final int BAD_MAC_ADDRESS				=8;
 	public static final int ILLEGAL_ARGUMENT			=9;
 	public static final int INSUFFICIENT_BUFFER_SPACE	=10;
-	
+	private static long RFClockOffset = 0; //The amount of clock offset
+
 	private HashMap<Short, Integer> sequenceMap; //maps mac addresses to the current sequence number
 
 	//Data shared with threads
-	private ConcurrentLinkedQueue<byte[]> dataToTrans; //Outgoing data app->transmit
+	private Vector<byte[]> dataToTrans; //Outgoing data app->transmit
 	private ConcurrentLinkedQueue<byte[]> rcvdACK;
 	private Vector<byte[]> dataRcvd; //Incoming data recv->app
 	private ConcurrentLinkedQueue<byte[]> acksToSend;
@@ -51,10 +52,10 @@ public class LinkLayer implements Dot11Interface {
 		LinkLayer.statusCode = SUCCESS;
 		this.ourMAC = ourMAC;
 		this.output = output;      
-		LinkLayer.theRF = new RF(null, null);
+		this.theRF = new RF(null, null);
 		
 		sequenceMap = new HashMap<Short, Integer>();
-		
+
 		//Shared between sender and recvr
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
@@ -64,13 +65,13 @@ public class LinkLayer implements Dot11Interface {
 		LinkLayer.beaconInterval = 5; //Default to interval of 5 seconds
 		
 		//The sender thread
-		this.dataToTrans = new ConcurrentLinkedQueue<byte[]>();
-		Sender sender = new Sender(LinkLayer.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
+		this.dataToTrans = new Vector<byte[]>();
+		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(sender)).start();
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(LinkLayer.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output);
+		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output, null);
 		(new Thread(recvr)).start();
 
 		output.println("LinkLayer initialized using a random MAC address:"+this.ourMAC);
@@ -81,21 +82,24 @@ public class LinkLayer implements Dot11Interface {
 	 * of bytes to send.  See docs for full description.
 	 */
 	public int send(short dest, byte[] data, int len) {
-		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
+		if(dataToTrans.size() == 4) //Don't queue more than 4 packets
+			return 0;
+			
+		output.println("LinkLayer: Trying to send "+len+" bytes to "+dest);
 
 		//add the packet to the shared Vector
 		Integer currentSeqNumber = sequenceMap.get(dest);
 		if(currentSeqNumber == null){
-			 int newSeqNumber = 0; //always start with 0;
-			 sequenceMap.put(dest, newSeqNumber);
-			 currentSeqNumber = newSeqNumber;
+			int newSeqNumber = 0; //always start with 0;
+			sequenceMap.put(dest, newSeqNumber);
+			currentSeqNumber = newSeqNumber;
 		}
 		//Construct the data packet
 		byte[] toSend = PacketManipulator.buildDataPacket(dest, this.ourMAC, data, len, currentSeqNumber);
-		
+
 		currentSeqNumber = (currentSeqNumber + toSend.length) % WINDOW_SIZE;
 		sequenceMap.put(dest, currentSeqNumber);
-		
+
 		boolean successAdding = dataToTrans.add(toSend);
 		if(successAdding) //success adding to the vector
 			return len;
@@ -124,7 +128,7 @@ public class LinkLayer implements Dot11Interface {
 
 		//There is new info so process it
 		byte[] dataRcvd = this.dataRcvd.get(0);
-		
+
 		//add the info to the transmission object
 		short destAddr = PacketManipulator.getDestAddr(dataRcvd);
 		t.setDestAddr(destAddr);
@@ -138,13 +142,21 @@ public class LinkLayer implements Dot11Interface {
 		this.dataRcvd.remove(0); //delete the packet we just processed
 		return data.length;
 	}
-	
+
 	/**
-	 * This function returns the RF layers clock time
+	 * This function allows for updating the clock value as well as adding an offset so that it is synced with other clocks
+	 * @param time If -1 the method returns the current clock time (with offset) if != -1 then it will try to update the clock
+	 * time and give back the new clock time. It only updates the clock time if it would be greater than current clock time
 	 * @return the clock time
 	 */
 	public static long clock(){
-		return theRF.clock();
+		return theRF.clock() + RFClockOffset;
+	}
+
+	public static void updateClock(long time){
+		if(time > clock())
+			RFClockOffset = time - clock();
+		
 	}
 	/**
 	 * Returns a current status code.  See docs for full description.

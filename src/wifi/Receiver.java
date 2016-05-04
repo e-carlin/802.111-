@@ -21,42 +21,49 @@ public class Receiver implements Runnable {
 	private ConcurrentLinkedQueue<byte[]> acksToSend;
 	//TODO shared AcksToSend queue (sender waits SIFS always, sends ack if needed, waits remaining time for DIFS otherwise)
 	private ConcurrentLinkedQueue<byte[]> rcvdACK; 
+	private ConcurrentLinkedQueue<byte[]> rcvdBeacon;
 	private short ourMAC; //our MAC address
 
-	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]> acksToSend, PrintWriter output){
+	Receiver(RF rf, Vector<byte[]> data, short ourMAC, ConcurrentLinkedQueue<byte[]> rcvdACK, ConcurrentLinkedQueue<byte[]> acksToSend, PrintWriter output, ConcurrentLinkedQueue<byte[]> rcvdBeacon){
 		this.theRF = rf;
 		this.dataRcvd = data;
 		this.rcvdACK = rcvdACK;
 		this.ourMAC = ourMAC;
 		this.acksToSend = acksToSend;
+		this.rcvdBeacon = rcvdBeacon;
 		this.output = output;
 	}
 	@Override
 	public void run() {
 
 		while(true){
-			byte[] packet = this.theRF.receive(); //block until a packet is received	
-			
-			 //Check to make sure we are the desired destination or -1 for a broadcast message
-			short destAddr = PacketManipulator.getDestAddr(packet);
-			if(destAddr == this.ourMAC || destAddr == -1){
-				
-				
-				if(PacketManipulator.isDataPacket(packet)){
-					dataRcvd.add(packet);
-					if(destAddr != -1){ //We don't ACK broadcast packets
-						
-						short srcAddr = PacketManipulator.getSourceAddr(packet);
-						int seqNum = PacketManipulator.getSeqNum(packet);
-						byte[] ackPacket =  PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
+			byte[] packet = this.theRF.receive(); //block until a packet is received
+			if(PacketManipulator.isBeaconFrame(packet)){ //If it is a beacon frame then update our clock
+				LinkLayer.updateClock(PacketManipulator.getTimeFromBeacon(packet));
+			}
 
-						//throw ackPacket on shared queue
-						acksToSend.add(ackPacket);
-					}
-				}else if(PacketManipulator.isACKPacket(packet))
-					rcvdACK.add(packet);
-			
-				//**** need to add else if to check for Beacons ****
+			else{
+				//Check to make sure we are the desired destination or -1 for a broadcast message
+				short destAddr = PacketManipulator.getDestAddr(packet);
+				if(destAddr == this.ourMAC || destAddr == -1){
+
+
+					if(PacketManipulator.isDataPacket(packet)){
+						dataRcvd.add(packet);
+						if(destAddr != -1){ //We don't ACK broadcast packets
+
+							short srcAddr = PacketManipulator.getSourceAddr(packet);
+							int seqNum = PacketManipulator.getSeqNum(packet);
+							byte[] ackPacket =  PacketManipulator.buildACKPacket(srcAddr, this.ourMAC, seqNum);
+
+							//throw ackPacket on shared queue
+							acksToSend.add(ackPacket);
+						}
+					}else if(PacketManipulator.isACKPacket(packet))
+						rcvdACK.add(packet);
+
+					//**** need to add else if to check for Beacons ****
+				}
 			}
 		}
 
