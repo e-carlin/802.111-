@@ -69,6 +69,7 @@ public class Sender implements Runnable {
 			Thread.sleep(this.SIFS); //sleep for DIFS
 		}
 		catch(InterruptedException e){ //If interrupted during sleep
+			LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 			this.output.println("Interrupted while waiting SIFS "+e);
 
 		}
@@ -84,8 +85,8 @@ public class Sender implements Runnable {
 			Thread.sleep(this.DIFS); //sleep for DIFS
 		}
 		catch(InterruptedException e){ //If interrupted during sleep
+			LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 			this.output.println("Interrupted while waiting DIFS "+e);
-
 		}
 	}
 	
@@ -121,6 +122,7 @@ public class Sender implements Runnable {
 			if(!this.theRF.inUse()){ //medium is still idle
 				this.theRF.transmit(dataToTrans.peek()); //transmit the frame
 				this.output.println("Transmitting data!");
+				LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 				return; //We transmitted the frame so we are done
 			}
 		}
@@ -133,7 +135,6 @@ public class Sender implements Runnable {
 		}
 		backoffAndTransmit();
 		return; //We transmitted the frame so we are done!
-
 	}
 
 	/**
@@ -159,7 +160,7 @@ public class Sender implements Runnable {
 				}
 				catch(InterruptedException e){ //If interrupted during sleep
 					this.output.println("Interrupted while sleeping aSlotTime "+e);
-
+					LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 				}
 			}
 			else if(!this.theRF.inUse())
@@ -172,6 +173,7 @@ public class Sender implements Runnable {
 		//Transmit after waiting
 		this.theRF.transmit(dataToTrans.peek()); //transmit the frame
 		this.output.println("Transmitting data!");
+		LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 	}
 
 

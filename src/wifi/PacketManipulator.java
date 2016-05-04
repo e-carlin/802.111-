@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.util.zip.Checksum;
 import java.util.zip.CRC32;
 import java.io.PrintWriter;
-import static java.lang.Math.toIntExact;
 
 /**
  * A static class to construct and de-construct network order packets (byte arrays)
