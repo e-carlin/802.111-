@@ -38,17 +38,18 @@ public class Receiver implements Runnable {
 
 		while(true){
 			byte[] packet = this.theRF.receive(); //block until a packet is received
-			if(PacketManipulator.isBeaconFrame(packet)){ //If it is a beacon frame then update our clock
-				LinkLayer.updateClock(PacketManipulator.getTimeFromBeacon(packet));
-			}
-
-			else{
-				//Check to make sure we are the desired destination or -1 for a broadcast message
-				short destAddr = PacketManipulator.getDestAddr(packet);
-				if(destAddr == this.ourMAC || destAddr == -1){
 
 
-					if(PacketManipulator.isDataPacket(packet)){
+
+			//Check to make sure we are the desired destination or -1 for a broadcast message
+			short destAddr = PacketManipulator.getDestAddr(packet);
+			if(destAddr == this.ourMAC || destAddr == -1){ //This is intended for us
+
+				if(PacketManipulator.isBeaconFrame(packet)){ //If it is a beacon frame then update our clock
+					LinkLayer.updateClock(PacketManipulator.getTimeFromBeacon(packet));
+				}
+				if(destAddr == 2){
+					else if(PacketManipulator.isDataPacket(packet)){
 						dataRcvd.add(packet);
 						if(destAddr != -1){ //We don't ACK broadcast packets
 
@@ -61,11 +62,10 @@ public class Receiver implements Runnable {
 						}
 					}else if(PacketManipulator.isACKPacket(packet))
 						rcvdACK.add(packet);
-
-					//**** need to add else if to check for Beacons ****
 				}
 			}
 		}
+
 
 	}
 
