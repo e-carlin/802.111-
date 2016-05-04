@@ -172,16 +172,22 @@ public class Sender implements Runnable {
 			this.output.println("Waiting backoff = "+backoff);
 			if(this.theRF.inUse()){ //the channel is in use so wait a little bit
 				try{ //Sleep the thread for aSlotTime
-					Thread.sleep(this.theRF.aSlotTime); //sleep for DIFS
-					this.output.println("Sleeping aSlotTime in backoff");
+					Thread.sleep(this.theRF.aSlotTime);
+					this.output.println("Sleeping while waiting for idle channel");
 				}
 				catch(InterruptedException e){ //If interrupted during sleep
-					this.output.println("Interrupted while sleeping aSlotTime "+e);
+					this.output.println("Interrupted while sleeping while waiting for idle channel in backoff "+e);
 					LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 				}
 			}
-			else if(!this.theRF.inUse())
-				break;
+			try{ //Sleep the thread for aSlotTime
+				Thread.sleep(this.theRF.aSlotTime); //sleep for DIFS
+				this.output.println("Sleeping aSlotTime in backoff");
+			}
+			catch(InterruptedException e){ //If interrupted during sleep
+				this.output.println("Interrupted while sleeping aSlotTime "+e);
+				LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
+			}
 			backoff -= this.theRF.aSlotTime;
 		}
 
