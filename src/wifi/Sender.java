@@ -63,23 +63,20 @@ public class Sender implements Runnable {
 				this.output.println("Interrupted while waiting for Idle Channel "+e);
 			}
 		}
-		//		this.output.println("Channel is now idle!");
 	}
 
 	/**
 	 * Waits SIFS
 	 */
 	private void waitSIFS() {
-		this.output.println("Waiting SIFS "+this.SIFS);
+		if(LinkLayer.diagLevel >= 1) this.output.println("Waiting SIFS "+this.SIFS);
 		try{ //Sleep the thread for DIFS
 			Thread.sleep(this.SIFS); //sleep for DIFS
 		}
 		catch(InterruptedException e){ //If interrupted during sleep
 			LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 			this.output.println("Interrupted while waiting SIFS "+e);
-
 		}
-
 	}
 
 	/**
@@ -109,7 +106,7 @@ public class Sender implements Runnable {
 				int ackSeqNum = PacketManipulator.getSeqNum(ack);
 				this.cw = this.theRF.aCWmin; //Reset collision window because successful transmit
 				this.collisionCount = 0; //Reset the number of collisions because ""
-				if(ackSeqNum == seqNum){
+				if(ackSeqNum == seqNum){ //if the sequence number was wrong, ignore
 					if(LinkLayer.diagLevel >= 1) this.output.println("Packet has been ACK'ed");
 					LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 					return true; //Our packet has been ACK'ed correctly
@@ -207,8 +204,6 @@ public class Sender implements Runnable {
 			backoff -= this.theRF.aSlotTime;
 		}
 
-
-
 		//Transmit after waiting
 		this.theRF.transmit(dataToTrans.get(0)); //transmit the frame - don't remove it because we need to wait for an ACK
 		if(LinkLayer.diagLevel >= 1) this.output.println("Transmitting data!");
@@ -266,7 +261,14 @@ public class Sender implements Runnable {
 		}
 
 	}
+	
+	//Throws a beacon to the front of data queue every time the timer fires
+	public class BeaconProbe extends TimerTask{
+		public void run() {
+			if(LinkLayer.diagLevel >= 1) LinkLayer.output.println("Creating Beacon");
+			byte[] beaconPacket = PacketManipulator.buildBeaconPacket((short)LinkLayer.BROADCAST_ADDR, LinkLayer.ourMAC);
+			LinkLayer.sender.dataToTrans.insertElementAt(beaconPacket, 0); //add to head of data vector for sending right away
+		}
+	}
 }
-
-
 

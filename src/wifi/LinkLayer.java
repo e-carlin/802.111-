@@ -204,8 +204,10 @@ public class LinkLayer implements Dot11Interface {
 				output.println("Setting beacon interval to "+val+" seconds.");
 				this.beaconInterval = val;
 				sender.sendBeacon.cancel();
-				sender.beaconTimer = new Timer();
-				sender.beaconTimer.scheduleAtFixedRate(sender.sendBeacon, 1000, this.beaconInterval*1000);
+				if(beaconInterval > 0){
+					sender.beaconTimer = new Timer();
+					sender.beaconTimer.scheduleAtFixedRate(sender.sendBeacon, 1000, this.beaconInterval*1000);
+				}
 				break;
 		}
 		return 0;
