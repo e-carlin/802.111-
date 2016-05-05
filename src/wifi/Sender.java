@@ -3,6 +3,8 @@ package wifi;
 import rf.RF;
 
 import java.io.PrintWriter;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -20,10 +22,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @version 04//03/2016
  *
  */
-public class Sender implements Runnable {
+public class Sender implements Runnable {	
+    public Timer beaconTimer;//create a new Timer
+    public TimerTask sendBeacon;
 	private RF theRF; 
 	private PrintWriter output;
-	private Vector<byte[]> dataToTrans; //Data waiting to be transmitted
+	public Vector<byte[]> dataToTrans; //Data waiting to be transmitted
 	private ConcurrentLinkedQueue<byte[]> rcvdACK; //ACKS received in Receiver thread
 	private ConcurrentLinkedQueue<byte[]> acksToSend; //ACKS waiting to be transmitted
 
@@ -43,6 +47,8 @@ public class Sender implements Runnable {
 		this.rcvdACK = rcvdACK;
 		this.acksToSend = acksToSend;
 		this.output = output;
+		this.beaconTimer = new Timer();
+		this.sendBeacon = new BeaconProbe();
 	}
 
 	/**
@@ -94,16 +100,19 @@ public class Sender implements Runnable {
 	 * Waits until an ACK arrives or a timeout occurs
 	 * @return true if we received an ACK before timeout
 	 */
-	private boolean waitForACK(){
+	private boolean waitForACK(int seqNum){
 		long startTime = LinkLayer.clock();
 		while(LinkLayer.clock() < (startTime + ACK_TIMEOUT)){ //we haven't timed out
 			if(!rcvdACK.isEmpty()){ //We've rcvd an ack
 				//Check to make sure it is the right seq #
-				rcvdACK.poll(); //remove the ACK
+				byte[] ack = rcvdACK.poll(); //remove the ACK
+				int ackSeqNum = PacketManipulator.getSeqNum(ack);
 				this.cw = this.theRF.aCWmin; //Reset collision window because successful transmit
-				this.collisionCount = 0; ////Reset the number of collisions because ""
-				this.output.println("Packet has been ACK'ed");
-				return true; //Our packet has been ACK'ed
+				this.collisionCount = 0; //Reset the number of collisions because ""
+				if(ackSeqNum == seqNum){
+					if(LinkLayer.diagLevel >= 1) this.output.println("Packet has been ACK'ed");
+					return true; //Our packet has been ACK'ed correctly
+				}
 			}
 			try{ //Sleep the thread for 20ms
 				Thread.sleep(20);
@@ -130,15 +139,15 @@ public class Sender implements Runnable {
 
 	/**
 	 * A method that waits DIFS and attempts to transmit a packet if the channel is idle
-	 * @return whether or not we were able to successfully transmit the packet
+	 * @return the sequence number of packet
 	 */
 	private void waitAndSendData(){
-
+		byte[] packet = dataToTrans.get(0);
 		if(!this.theRF.inUse()){ //medium is idle				
 			waitDIFS(); //Wait DIFS		
 			if(!this.theRF.inUse()){ //medium is still idle
-				this.theRF.transmit(dataToTrans.get(0)); //transmit the frame
-				this.output.println("Transmitting data!");
+				this.theRF.transmit(packet); //transmit the frame
+				if(LinkLayer.diagLevel >= 1) this.output.println("Transmitting data!");
 				LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 				return; //We transmitted the frame so we are done
 			}
@@ -166,7 +175,12 @@ public class Sender implements Runnable {
 
 		this.output.println("CW = " +this.cw);
 
-		int backoff = (int) ((Math.random()*this.cw) * this.theRF.aSlotTime);
+		int backoff;
+		if(LinkLayer.slotRandom){
+			backoff = (int) ((Math.random()*this.cw) * this.theRF.aSlotTime);
+		}else{
+			backoff = (int) this.cw * this.theRF.aSlotTime;
+		}
 
 		while(backoff > 0){ //wait the backoff while sensing and pausing when channel isn't idle
 			this.output.println("Waiting backoff = "+backoff);
@@ -199,17 +213,19 @@ public class Sender implements Runnable {
 		LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 	}
 
-
-
 	@Override
 	public void run() {
+	    beaconTimer.scheduleAtFixedRate(sendBeacon, 1000, LinkLayer.beaconInterval*1000);//add beacons to the data queue every beaconInterval seconds.  Wait 1 second after starting to send the first beacon.
 		while(true){
 			while(!(dataToTrans.isEmpty() && acksToSend.isEmpty())){ //while there is data to transmit
 				if(!acksToSend.isEmpty()){
 					waitAndSendAck(); //acks get priority
 				}else{
 					waitAndSendData(); //Do necessary sensing, waiting, and transmitting
-					if(waitForACK()){ //After sending the packet wait for an ACK
+					byte[] packet = dataToTrans.get(0);
+					int seqNum = PacketManipulator.getSeqNum(packet);
+					int srcAddr = PacketManipulator.getSourceAddr(packet);
+					if(srcAddr == LinkLayer.BROADCAST_ADDR || waitForACK(seqNum)){ //After sending the packet wait for an ACK
 						dataToTrans.remove(0);; //Remove this packet
 						break; //We've rcvd the ACK so were all done with this packet!
 					}else{ //We timed out while waiting for an ACK so there must have been a collision
@@ -228,7 +244,7 @@ public class Sender implements Runnable {
 							this.output.println("There was a collision");
 							this.collisionCount ++; //Increment the collision counter
 							backoffAndTransmit();
-							if(waitForACK()){ //After sending the packet wait for an ACK
+							if(srcAddr == LinkLayer.BROADCAST_ADDR || waitForACK(seqNum)){ //After sending the packet wait for an ACK
 								dataToTrans.remove(0); //Remove this packet
 								break; //We've rcvd the ACK so were all done with this packet!
 							}

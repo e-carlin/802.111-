@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import rf.RF;
+import java.util.Timer;
 
 /**
  * Use this layer as a starting point for your project code.  See {@link Dot11Interface} for more
@@ -13,9 +14,13 @@ import rf.RF;
  */
 public class LinkLayer implements Dot11Interface {
 	private static final int WINDOW_SIZE = 100; //TODO: choose window size
+	public static final int BROADCAST_ADDR = -1;
 	private static RF theRF;           // You'll need one of these eventually
-	private short ourMAC;       // Our MAC address
-	private PrintWriter output; // The output stream we'll write to
+	public static short ourMAC;       // Our MAC address
+	public static PrintWriter output; // The output stream we'll write to
+	
+	public static Sender sender;
+	private static Receiver recvr;
 	
 	public static int diagLevel;
 	public static boolean slotRandom;
@@ -49,7 +54,7 @@ public class LinkLayer implements Dot11Interface {
 	 * @param output  Output stream associated with GUI
 	 */
 	public LinkLayer(short ourMAC, PrintWriter output) {
-		LinkLayer.statusCode = SUCCESS;
+		this.statusCode = SUCCESS;
 		this.ourMAC = ourMAC;
 		this.output = output;      
 		this.theRF = new RF(null, null);
@@ -60,18 +65,18 @@ public class LinkLayer implements Dot11Interface {
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
-		LinkLayer.diagLevel = 0;
-		LinkLayer.slotRandom = true;
-		LinkLayer.beaconInterval = 5; //Default to interval of 5 seconds
+		this.diagLevel = 2; //default to highest debug output
+		this.slotRandom = true;
+		this.beaconInterval = 5; //Default to interval of 5 seconds
 		
 		//The sender thread
 		this.dataToTrans = new Vector<byte[]>();
-		Sender sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
+		this.sender = new Sender(this.theRF, this.dataToTrans, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(sender)).start();
 
 		//The receiver thread
 		this.dataRcvd = new Vector<byte[]>();
-		Receiver recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output);
+		this.recvr = new Receiver(this.theRF, this.dataRcvd, this.ourMAC, this.rcvdACK, this.acksToSend, this.output);
 		(new Thread(recvr)).start();
 
 		output.println("LinkLayer initialized using a random MAC address:"+this.ourMAC);
@@ -104,7 +109,7 @@ public class LinkLayer implements Dot11Interface {
 		if(successAdding) //success adding to the vector
 			return len;
 		else{
-			LinkLayer.statusCode = LinkLayer.TX_FAILED;
+			this.statusCode = LinkLayer.TX_FAILED;
 			return -1;
 		}
 	}
@@ -182,7 +187,7 @@ public class LinkLayer implements Dot11Interface {
 				break;
 			case 1:
 				output.println("Setting diagnostic level to "+ val);
-				LinkLayer.diagLevel = val;
+				this.diagLevel = val;
 				break;
 			case 2:
 				if(val==0){
@@ -197,7 +202,10 @@ public class LinkLayer implements Dot11Interface {
 				break;
 			case 3:
 				output.println("Setting beacon interval to "+val+" seconds.");
-				LinkLayer.beaconInterval = val;
+				this.beaconInterval = val;
+				sender.sendBeacon.cancel();
+				sender.beaconTimer = new Timer();
+				sender.beaconTimer.scheduleAtFixedRate(sender.sendBeacon, 1000, this.beaconInterval*1000);
 				break;
 		}
 		return 0;
