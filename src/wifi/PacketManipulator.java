@@ -93,6 +93,30 @@ public class PacketManipulator {
 
 		return toSend.array();
 	}
+	
+	public static byte[] buildBeaconPacket(short dest, short source){
+		int beaconLength = 8; //8 bytes for long.
+		ByteBuffer noCRC = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+beaconLength); //Packet w/o CRC
+		byte controlBits = 0b010_00000; //beacon
+
+		noCRC.put(new byte[] {controlBits, 0}); //Beacons don't use sequence numbers  so we leave them all to be 0
+		
+		noCRC.putShort(dest); //add the destination MAC address
+		noCRC.putShort(source); //Our MAC address
+		noCRC.putLong(LinkLayer.clock()); //add data
+
+		//Calculating CRC
+		byte[] preCRC = noCRC.array(); //Convert the data packet without the CRC field to calculate the checksum
+		Checksum checksum = new CRC32();
+		checksum.update(preCRC, 0, preCRC.length);
+		int checksumValue = (int) checksum.getValue(); //****Is this right to cast?????
+
+		ByteBuffer toSend = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+beaconLength + SIZE_CRC); //full packet with the CRC
+		toSend.put(preCRC);
+		toSend.putInt(checksumValue);
+
+		return toSend.array();
+	}
 
 	/**
 	 * sets an existing packet retry bit to 1
@@ -202,43 +226,22 @@ public class PacketManipulator {
 		return ByteBuffer.wrap(time).getLong();
 	}
 	
-	public static byte[] buildBeaconPacket(short dest, short source){
-		int beaconLength = 8; //8 bytes for long.
-		ByteBuffer noCRC = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+beaconLength); //Packet w/o CRC
-		byte controlBits = 0b010_00000; //beacon
-
-		noCRC.put(controlBits); //Beacons don't use sequence numbers  so we leave them all to be 0
-		
-		noCRC.putShort(dest); //add the destination MAC address
-		noCRC.putShort(source); //Our MAC address
-		noCRC.putLong(LinkLayer.clock()); //add data
-
-		//Calculating CRC
-		byte[] preCRC = noCRC.array(); //Convert the data packet without the CRC field to calculate the checksum
-		Checksum checksum = new CRC32();
-		checksum.update(preCRC, 0, preCRC.length);
-		int checksumValue = (int) checksum.getValue(); //****Is this right to cast?????
-
-		ByteBuffer toSend = ByteBuffer.allocate(SIZE_CONTROL+SIZE_ADDR*2+beaconLength + SIZE_CRC); //full packet with the CRC
-		toSend.put(preCRC);
-		toSend.putInt(checksumValue);
-
-		return toSend.array();
-	}
-
 
 	public static void printPacket(PrintWriter output,byte[] packet){
-		output.print("[ ");
-
+		output.print("[");
+		for(int i=0; i<packet.length; i++){
+			output.printf("%X ",packet[i]);
+		}
+		output.print("] ");
+		
 		if(PacketManipulator.isDataPacket(packet))
-			output.print("Data ");
-		else if(PacketManipulator.isACKPacket(packet));
-		output.print("ACK ");
+			output.print("(Data)");
+		else if(PacketManipulator.isACKPacket(packet))
+			output.print("(ACK)");
+		else if(PacketManipulator.isBeaconFrame(packet))
+			output.print("(BEACON)");
 
-		output.print(PacketManipulator.getSourceAddr(packet) + " –> " + PacketManipulator.getDestAddr(packet));
-
-		output.print("  CRC?? ");
-		output.println("]");
+		output.println(PacketManipulator.getSourceAddr(packet) + ":" + PacketManipulator.getDestAddr(packet));
 	}
 
 

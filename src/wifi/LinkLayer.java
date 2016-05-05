@@ -65,9 +65,9 @@ public class LinkLayer implements Dot11Interface {
 		this.rcvdACK = new ConcurrentLinkedQueue<byte[]>();
 		this.acksToSend = new ConcurrentLinkedQueue<byte[]>();
 
-		this.diagLevel = 2; //default to highest debug output
+		this.diagLevel = 0; //default to highest debug output
 		this.slotRandom = true;
-		this.beaconInterval = 5; //Default to interval of 5 seconds
+		this.beaconInterval = 10; //Default to interval of 5 seconds
 		
 		//The sender thread
 		this.dataToTrans = new Vector<byte[]>();
@@ -90,7 +90,7 @@ public class LinkLayer implements Dot11Interface {
 		if(dataToTrans.size() > 3) //Don't queue more than 4 packets
 			return 0;
 			
-		output.println("LinkLayer: Trying to send "+len+" bytes to "+dest);
+		if(LinkLayer.diagLevel >= 1) output.println("LinkLayer: Trying to send "+len+" bytes to "+dest);
 
 		//add the packet to the shared Vector
 		Integer currentSeqNumber = sequenceMap.get(dest);

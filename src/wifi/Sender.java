@@ -86,7 +86,7 @@ public class Sender implements Runnable {
 	 * Waits DIFS
 	 */
 	private void waitDIFS(){
-		this.output.println("Waiting DIFS");
+		if(LinkLayer.diagLevel >= 1) this.output.println("Waiting DIFS");
 		try{ //Sleep the thread for DIFS
 			Thread.sleep(this.DIFS); //sleep for DIFS
 		}
@@ -111,6 +111,7 @@ public class Sender implements Runnable {
 				this.collisionCount = 0; //Reset the number of collisions because ""
 				if(ackSeqNum == seqNum){
 					if(LinkLayer.diagLevel >= 1) this.output.println("Packet has been ACK'ed");
+					LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 					return true; //Our packet has been ACK'ed correctly
 				}
 			}
@@ -123,7 +124,8 @@ public class Sender implements Runnable {
 			}
 
 		}
-		this.output.println("Timed out while waiting for ACK");
+		if(LinkLayer.diagLevel >= 1) this.output.println("Timed out while waiting for ACK");
+		LinkLayer.statusCode = LinkLayer.TX_FAILED;
 		return false; //we timed out
 	}
 
@@ -132,8 +134,8 @@ public class Sender implements Runnable {
 	 */
 	private void waitAndSendAck() {
 		waitSIFS(); //Wait SIFS		
-		this.output.print("Transmitting ACK ");
-		PacketManipulator.printPacket(output, acksToSend.peek());
+		if(LinkLayer.diagLevel >= 1) output.println("Sending ACK");
+		if(LinkLayer.diagLevel >= 1) PacketManipulator.printPacket(output, acksToSend.peek());
 		this.theRF.transmit(acksToSend.poll()); //transmit the frame
 	}
 
@@ -173,7 +175,7 @@ public class Sender implements Runnable {
 		if(this.cw > this.theRF.aCWmax)
 			this.cw = this.theRF.aCWmax; //cw can't be greater than the max cw
 
-		this.output.println("CW = " +this.cw);
+		if(LinkLayer.diagLevel >= 1) this.output.println("CW = " +this.cw);
 
 		int backoff;
 		if(LinkLayer.slotRandom){
@@ -183,23 +185,23 @@ public class Sender implements Runnable {
 		}
 
 		while(backoff > 0){ //wait the backoff while sensing and pausing when channel isn't idle
-			this.output.println("Waiting backoff = "+backoff);
+			if(LinkLayer.diagLevel >= 1) this.output.println("Waiting backoff = "+backoff);
 			if(this.theRF.inUse()){ //the channel is in use so wait a little bit
 				try{ //Sleep the thread for aSlotTime
 					Thread.sleep(this.theRF.aSlotTime);
-					this.output.println("Sleeping while waiting for idle channel");
+					if(LinkLayer.diagLevel >= 1) this.output.println("Sleeping while waiting for idle channel");
 				}
 				catch(InterruptedException e){ //If interrupted during sleep
-					this.output.println("Interrupted while sleeping while waiting for idle channel in backoff "+e);
+					if(LinkLayer.diagLevel >= 1) this.output.println("Interrupted while sleeping while waiting for idle channel in backoff "+e);
 					LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 				}
 			}
 			try{ //Sleep the thread for aSlotTime
 				Thread.sleep(this.theRF.aSlotTime); //sleep for DIFS
-				this.output.println("Sleeping aSlotTime in backoff");
+				if(LinkLayer.diagLevel >= 1) this.output.println("Sleeping aSlotTime in backoff");
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				this.output.println("Interrupted while sleeping aSlotTime "+e);
+				if(LinkLayer.diagLevel >= 1) this.output.println("Interrupted while sleeping aSlotTime "+e);
 				LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 			}
 			backoff -= this.theRF.aSlotTime;
@@ -209,7 +211,7 @@ public class Sender implements Runnable {
 
 		//Transmit after waiting
 		this.theRF.transmit(dataToTrans.get(0)); //transmit the frame - don't remove it because we need to wait for an ACK
-		this.output.println("Transmitting data!");
+		if(LinkLayer.diagLevel >= 1) this.output.println("Transmitting data!");
 		LinkLayer.statusCode = LinkLayer.TX_DELIVERED;
 	}
 
@@ -223,9 +225,10 @@ public class Sender implements Runnable {
 				}else{
 					waitAndSendData(); //Do necessary sensing, waiting, and transmitting
 					byte[] packet = dataToTrans.get(0);
+					if(LinkLayer.diagLevel >= 1) PacketManipulator.printPacket(output,packet);
 					int seqNum = PacketManipulator.getSeqNum(packet);
-					int srcAddr = PacketManipulator.getSourceAddr(packet);
-					if(srcAddr == LinkLayer.BROADCAST_ADDR || waitForACK(seqNum)){ //After sending the packet wait for an ACK
+					int dAddr = PacketManipulator.getDestAddr(packet);
+					if(dAddr == LinkLayer.BROADCAST_ADDR || waitForACK(seqNum)){ //After sending the packet wait for an ACK
 						dataToTrans.remove(0);; //Remove this packet
 						break; //We've rcvd the ACK so were all done with this packet!
 					}else{ //We timed out while waiting for an ACK so there must have been a collision
@@ -233,7 +236,7 @@ public class Sender implements Runnable {
 						while(true){
 							this.reTrys++;
 							if(this.reTrys > this.theRF.dot11RetryLimit){ //we've reached the retry limit
-								this.output.println("Reached retry limit!");
+								if(LinkLayer.diagLevel >= 1) this.output.println("Reached retry limit!");
 								//Reset everything
 								this.reTrys = 0;
 								this.collisionCount = 0;
@@ -241,10 +244,10 @@ public class Sender implements Runnable {
 								dataToTrans.remove(0); //Remove the packet we can't seem to send
 								break;
 							}
-							this.output.println("There was a collision");
+							if (LinkLayer.diagLevel >= 1) this.output.println("There was a collision");
 							this.collisionCount ++; //Increment the collision counter
 							backoffAndTransmit();
-							if(srcAddr == LinkLayer.BROADCAST_ADDR || waitForACK(seqNum)){ //After sending the packet wait for an ACK
+							if(dAddr == LinkLayer.BROADCAST_ADDR || waitForACK(seqNum)){ //After sending the packet wait for an ACK
 								dataToTrans.remove(0); //Remove this packet
 								break; //We've rcvd the ACK so were all done with this packet!
 							}
@@ -258,7 +261,7 @@ public class Sender implements Runnable {
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
 				this.output.println("Interrupted while waiting for data to brodcast "+e);
-
+				LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 			}
 		}
 

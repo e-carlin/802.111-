@@ -65,7 +65,8 @@ public class Receiver implements Runnable {
 				Thread.sleep(100); //sleep for 100ms
 			}
 			catch(InterruptedException e){ //If interrupted during sleep
-				this.output.println("Interrupted while sleeping in Recv "+e);
+				if(LinkLayer.diagLevel >= 1) this.output.println("Interrupted while sleeping in Recv "+e);
+				LinkLayer.statusCode = LinkLayer.UNSPECIFIED_ERROR;
 			}
 		}
 
